@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\EditorController;
+use App\Http\Controllers\FotograferController;
+use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +20,9 @@ Route::get('/', function () {
 
 // web.php
 Route::resource('admin', AdminController::class);
+Route::resource('fotografer', FotograferController::class);
+Route::resource('editor', EditorController::class);
+Route::resource('laporan', LaporanController::class);
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
