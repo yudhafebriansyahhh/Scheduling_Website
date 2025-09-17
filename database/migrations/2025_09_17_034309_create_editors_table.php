@@ -17,6 +17,7 @@ return new class extends Migration
             $table->text('alamat')->nullable();
             $table->string('no_hp')->nullable();
             $table->string('email')->unique();
+            $table->string('photo')->nullable();
             $table->timestamps();
         });
     }

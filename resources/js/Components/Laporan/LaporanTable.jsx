@@ -6,7 +6,7 @@ const LaporanTable = ({
   onShowDetail,
   searchTerm,
   filterStatus,
-  totalData
+  filterRole,
 }) => {
   const getStatusBadge = (status) => {
     switch (status) {
@@ -46,6 +46,28 @@ const LaporanTable = ({
     });
   };
 
+  function formatHours(value) {
+    const num = Number(value) || 0; // pastikan number, kalau null/string kosong jadi 0
+    return Number.isInteger(num) ? num : num.toFixed(1);
+  }
+
+  // Calculate colspan for empty state
+  const calculateColspan = () => {
+    let baseColumns = 6; // No, Tanggal, Jam Mulai, Jam Selesai, Nama Event, Status, Aksi
+
+    if (filterRole === 'all') {
+      baseColumns += 4; // Fotografer, Editor, Jam Fotografer, Jam Editor
+    } else if (filterRole === 'fotografer') {
+      baseColumns += 2; // Fotografer, Jam Fotografer
+    } else if (filterRole === 'editor') {
+      baseColumns += 2; // Editor, Jam Editor
+    }
+
+    baseColumns += 1; // Lapangan (always shown)
+
+    return baseColumns;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
@@ -57,46 +79,85 @@ const LaporanTable = ({
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jam Mulai</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jam Selesai</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama Event</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Fotografer</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Editor</th>
+
+              {/* Conditional headers based on filterRole */}
+              {(filterRole === 'all' || filterRole === 'fotografer') && (
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Fotografer</th>
+              )}
+
+              {(filterRole === 'all' || filterRole === 'editor') && (
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Editor</th>
+              )}
+
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Lapangan</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jam Fotografer</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jam Editor</th>
+
+              {(filterRole === 'all' || filterRole === 'fotografer') && (
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jam Fotografer</th>
+              )}
+
+              {(filterRole === 'all' || filterRole === 'editor') && (
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jam Editor</th>
+              )}
+
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {filteredData.length === 0 ? (
               <tr>
-                <td colSpan="13" className="px-6 py-12 text-center text-gray-500">
-                  {searchTerm || filterStatus !== 'all' ? 'Tidak ada data yang ditemukan' : 'Belum ada data laporan'}
+                <td colSpan={calculateColspan()} className="px-6 py-12 text-center text-gray-500">
+                  {searchTerm || filterStatus !== 'all'
+                    ? 'Tidak ada data yang ditemukan'
+                    : 'Belum ada data laporan'}
                 </td>
               </tr>
             ) : (
               filteredData.map((item, index) => (
-                <tr key={item.id} className="border-t hover:bg-gray-50 transition-colors">
+                <tr
+                  key={item.id}
+                  className="border-t hover:bg-gray-50 transition-colors"
+                >
                   <td className="px-6 py-4 text-sm text-gray-600">{index + 1}</td>
                   <td className="px-6 py-4 text-sm text-gray-700">{formatDate(item.tanggal)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{item.jamMulai}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{item.jamSelesai}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.namaEvent}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{item.fotografer}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{item.editor}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">
+                    {item.jamMulai ? item.jamMulai.slice(0, 5) : '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">
+                    {item.jamSelesai ? item.jamSelesai.slice(0, 5) : '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.namaTim}</td>
+
+                  {/* Conditional columns based on filterRole */}
+                  {(filterRole === 'all' || filterRole === 'fotografer') && (
+                    <td className="px-6 py-4 text-sm text-gray-700">{item.fotografer?.nama || '-'}</td>
+                  )}
+
+                  {(filterRole === 'all' || filterRole === 'editor') && (
+                    <td className="px-6 py-4 text-sm text-gray-700">{item.editor?.nama || '-'}</td>
+                  )}
+
                   <td className="px-6 py-4 text-sm text-gray-700">{item.lapangan}</td>
                   <td className="px-6 py-4">{getStatusBadge(item.status)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    <div className="flex items-center">
-                      <Clock size={14} className="mr-1 text-purple-400" />
-                      {item.jamFotografer}h
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    <div className="flex items-center">
-                      <Clock size={14} className="mr-1 text-orange-400" />
-                      {item.jamEditor}h
-                    </div>
-                  </td>
+
+                  {(filterRole === 'all' || filterRole === 'fotografer') && (
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      <div className="flex items-center">
+                        <Clock size={14} className="mr-1 text-purple-400" />
+                        {formatHours(item.jamFotografer)}h
+                      </div>
+                    </td>
+                  )}
+
+                  {(filterRole === 'all' || filterRole === 'editor') && (
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      <div className="flex items-center">
+                        <Clock size={14} className="mr-1 text-orange-400" />
+                        {formatHours(item.jamEditor)}h
+                      </div>
+                    </td>
+                  )}
+
                   <td className="px-6 py-4">
                     <button
                       onClick={() => onShowDetail(item)}
