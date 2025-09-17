@@ -2,127 +2,160 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Editor;
+use App\Models\Fotografer;
 use App\Models\Schedule;
-use App\Http\Requests\StoreScheduleRequest;
-use App\Http\Requests\UpdateScheduleRequest;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
 
 class ScheduleController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
-{
-    $schedules = Schedule::with(['fotografer', 'editor'])
-        ->orderBy('tanggal', 'desc') // ✅ ganti latest()
-        ->get()
-        ->map(function ($item) {
-            $jamMulai = strtotime($item->jam_mulai);
-            $jamSelesai = strtotime($item->jam_selesai);
-            $totalJam = round(($jamSelesai - $jamMulai) / 3600, 1);
-
-            return [
-                'id' => $item->id,
-                'tanggal' => $item->tanggal,
-                'jamMulai' => $item->jam_mulai,
-                'jamSelesai' => $item->jam_selesai,
-                'namaTim' => $item->nama_event,
-                'fotografer' => $item->fotografer?->name,
-                'editor' => $item->editor?->name,
-                'lapangan' => $item->lapangan,
-                'status' => $item->status,
-                'totalJam' => $totalJam,
-                'jamFotografer' => $totalJam,
-                'jamEditor' => $totalJam,
-                'catatan' => $item->catatan ?? '-',
-            ];
-        });
-
-    return Inertia::render('Admin/Laporan', [
-        'laporanData' => $schedules,
-    ]);
-}
-
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create(): Response
     {
-        return Inertia::render('Admin/Schedules/Create');
+        $schedules = Schedule::with(['fotografer', 'editor'])
+            ->latest('tanggal')
+            ->latest('jamMulai')
+            ->get();
+
+        return Inertia::render('Admin/Laporan', compact('schedules'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreScheduleRequest $request)
+    public function create()
     {
-        $data = $request->validated();
-
-        $schedule = Schedule::create($data);
-
-        return redirect()->route('schedules.index')
-            ->with('success', 'Schedule berhasil ditambahkan');
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Schedule $schedule): Response
-    {
-        $schedule->jamFotografer = $this->calculateDuration($schedule->jam_mulai, $schedule->jam_selesai);
-        $schedule->jamEditor = $this->calculateDuration($schedule->jam_mulai, $schedule->jam_selesai);
-
-        return Inertia::render('Admin/Schedules/Show', [
-            'schedule' => $schedule
+        return Inertia::render('Admin/Schedule/TambahSchedule', [
+            'fotografers' => Fotografer::all(),
+            'editors'     => Editor::all(),
         ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Schedule $schedule): Response
+    public function store(Request $request)
     {
-        return Inertia::render('Admin/Schedules/Edit', [
-            'schedule' => $schedule
+        $validated = $this->validateSchedule($request);
+
+        try {
+            Schedule::create($this->prepareScheduleData($validated));
+            return redirect()->route('schedule.index')->with('success', 'Schedule berhasil ditambahkan.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()])->withInput();
+        }
+    }
+
+    public function show(Schedule $schedule)
+    {
+        return Inertia::render('Admin/Schedule/DetailSchedule', [
+            'schedule' => $schedule->load(['fotografer', 'editor'])
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateScheduleRequest $request, Schedule $schedule)
+    public function edit(Schedule $schedule)
     {
-        $data = $request->validated();
-
-        $schedule->update($data);
-
-        return redirect()->route('schedules.index')
-            ->with('success', 'Schedule berhasil diperbarui');
+        return Inertia::render('Admin/Schedule/EditSchedule', [
+            'schedule'    => $schedule,
+            'fotografers' => Fotografer::all(),
+            'editors'     => Editor::all(),
+        ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Schedule $schedule): RedirectResponse
+    public function update(Request $request, Schedule $schedule)
+    {
+        $validated = $this->validateSchedule($request, true);
+
+        try {
+            $schedule->update($this->prepareScheduleData($validated, $schedule));
+            return redirect()->route('schedule.index')->with('success', 'Schedule berhasil diupdate.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()])->withInput();
+        }
+    }
+
+    public function destroy(Schedule $schedule)
     {
         $schedule->delete();
+        return redirect()->route('schedule.index')->with('success', 'Schedule berhasil dihapus.');
+    }
 
-        return redirect()->route('schedules.index')
-            ->with('success', 'Schedule berhasil dihapus.');
+    public function updateStatus(Request $request, Schedule $schedule)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:pending,in_progress,completed'
+        ]);
+
+        $schedule->update(['status' => $validated['status']]);
+        return back()->with('success', 'Status berhasil diupdate.');
     }
 
     /**
-     * Hitung durasi antara jam mulai dan jam selesai dalam jam (decimal).
+     * VALIDASI
      */
-    private function calculateDuration($jamMulai, $jamSelesai): float
+    private function validateSchedule(Request $request, bool $isUpdate = false): array
     {
-        $mulai = strtotime($jamMulai);
-        $selesai = strtotime($jamSelesai);
+        return $request->validate([
+            'tanggal'       => $isUpdate ? 'required|date' : 'required|date|after_or_equal:today',
+            'jamMulai'      => 'nullable|date_format:H:i',
+            'jamSelesai'    => 'nullable|date_format:H:i',
+            'namaEvent'     => 'required|string|max:255',
+            'fotografer_id' => 'nullable|exists:fotografers,id',
+            // 'editor_id'     => 'nullable|exists:editors,id',
+            'lapangan'      => 'nullable|string|max:255',
+            'catatan'       => 'nullable|string',
+            'linkGdriveFotografer' => 'nullable|url',
+            'linkGdriveEditor'     => 'nullable|url',
+        ]);
+    }
 
-        return round(($selesai - $mulai) / 3600, 2);
+    /**
+     * PERSIAPAN DATA: hitung jam, durasi, status
+     */
+    private function prepareScheduleData(array $validated, ?Schedule $schedule = null): array
+    {
+        $tanggalMulai = null;
+        $tanggalSelesai = null;
+        $durasiJam = null;
+        $status = $schedule->status ?? 'pending';
+
+        if (!empty($validated['jamMulai']) && !empty($validated['jamSelesai'])) {
+            [$tanggalMulai, $tanggalSelesai, $durasiJam] = $this->processScheduleTime(
+                $validated['tanggal'],
+                $validated['jamMulai'],
+                $validated['jamSelesai']
+            );
+
+            $status = $this->determineStatus(now('Asia/Jakarta'), $tanggalMulai, $tanggalSelesai);
+        }
+
+        return array_merge($validated, [
+            'status'        => $status,
+            'jamFotografer' => !empty($validated['fotografer_id']) ? $durasiJam : 0,
+            'jamEditor'     => !empty($validated['editor_id']) ? $durasiJam : 0,
+        ]);
+    }
+
+    /**
+     * HITUNG DURASI (selalu positif, handle lewat tengah malam)
+     */
+    private function processScheduleTime(string $tanggal, string $jamMulaiStr, string $jamSelesaiStr): array
+    {
+        $timezone = 'Asia/Jakarta';
+        $jamMulai = Carbon::createFromFormat('H:i', $jamMulaiStr);
+        $jamSelesai = Carbon::createFromFormat('H:i', $jamSelesaiStr);
+
+        $tanggalMulai   = Carbon::createFromFormat('Y-m-d H:i', "$tanggal $jamMulaiStr", $timezone);
+        $tanggalSelesai = Carbon::createFromFormat('Y-m-d H:i', "$tanggal $jamSelesaiStr", $timezone);
+
+        if ($jamSelesai->lte($jamMulai)) {
+            $tanggalSelesai->addDay(); // jika lewat tengah malam
+        }
+
+        $durasiMenit = $tanggalMulai->diffInMinutes($tanggalSelesai);
+        $durasiJam   = round($durasiMenit / 60, 2);
+
+        return [$tanggalMulai, $tanggalSelesai, $durasiJam];
+    }
+
+    private function determineStatus(Carbon $now, Carbon $tanggalMulai, Carbon $tanggalSelesai): string
+    {
+        return $now->lt($tanggalMulai) ? 'pending'
+            : ($now->between($tanggalMulai, $tanggalSelesai) ? 'in_progress' : 'completed');
     }
 }

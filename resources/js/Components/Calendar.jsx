@@ -6,7 +6,6 @@ const Calendar = ({ events = [], onDateSelect, selectedDate }) => {
   const [hoveredDate, setHoveredDate] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const [popupData, setPopupData] = useState(null);
-  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -170,15 +169,6 @@ const Calendar = ({ events = [], onDateSelect, selectedDate }) => {
     // Show popup if there are activities for this date
     const activities = sampleActivities[dateObj.dateStr];
     if (activities && activities.length > 0) {
-      const rect = event.currentTarget.getBoundingClientRect();
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-
-      setPopupPosition({
-        x: rect.left + scrollLeft + rect.width / 2,
-        y: rect.top + scrollTop + rect.height + 5
-      });
-
       setPopupData({
         date: dateObj.date,
         activities: activities
@@ -243,17 +233,31 @@ const Calendar = ({ events = [], onDateSelect, selectedDate }) => {
     return new Intl.DateTimeFormat('id-ID', options).format(date);
   };
 
-  // Close popup when clicking outside
+  // Close popup when clicking outside or pressing escape
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showPopup && !event.target.closest('.popup-container')) {
+      if (showPopup && !event.target.closest('.popup-content')) {
         setShowPopup(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowPopup(false);
+      }
+    };
+
+    if (showPopup) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+      // Prevent body scroll when popup is open
+      document.body.style.overflow = 'hidden';
+    }
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
     };
   }, [showPopup]);
 
@@ -377,74 +381,67 @@ const Calendar = ({ events = [], onDateSelect, selectedDate }) => {
         </div>
       </div>
 
-      {/* Activity Popup */}
+      {/* Centered Activity Popup */}
       {showPopup && popupData && (
-        <div
-          className="popup-container fixed z-50"
-          style={{
-            left: `${popupPosition.x}px`,
-            top: `${popupPosition.y}px`,
-            transform: 'translateX(-50%)'
-          }}
-        >
-          <div className="bg-white rounded-lg shadow-xl border max-w-md w-80 animate-fadeIn">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="popup-content bg-white rounded-lg shadow-xl w-96 max-h-[90vh] overflow-hidden animate-fadeIn">
             {/* Popup Header */}
-            <div className="bg-blue-500 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
+            <div className="bg-blue-500 text-white px-6 py-4 flex items-center justify-between">
               <div>
-                <h4 className="font-semibold">Kegiatan Hari Ini</h4>
+                <h4 className="font-semibold text-lg">Kegiatan Hari Ini</h4>
                 <p className="text-sm opacity-90">{formatDate(popupData.date)}</p>
               </div>
               <button
                 onClick={() => setShowPopup(false)}
-                className="p-1 hover:bg-blue-600 rounded-full transition-colors"
+                className="p-2 hover:bg-blue-600 rounded-full transition-colors"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
             {/* Activities List */}
-            <div className="max-h-80 overflow-y-auto">
+            <div className="max-h-[50vh] overflow-y-auto">
               {popupData.activities.map((activity, index) => (
                 <div
                   key={activity.id}
-                  className={`p-4 border-gray-100 ${
+                  className={`p-6 border-gray-100 ${
                     index !== popupData.activities.length - 1 ? 'border-b' : ''
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center">
                       <div className={`w-3 h-3 rounded-full mr-3 ${getStatusColor(activity.status)}`}></div>
                       <div>
-                        <div className="font-semibold text-sm text-gray-900">{activity.team}</div>
-                        <div className="text-xs text-gray-500">{getStatusText(activity.status)}</div>
+                        <div className="font-semibold text-base text-gray-900">{activity.team}</div>
+                        <div className="text-sm text-gray-500">{getStatusText(activity.status)}</div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-3 text-sm">
                     <div className="flex items-center text-gray-600">
-                      <Clock size={14} className="mr-2" />
-                      {activity.time}
+                      <Clock size={16} className="mr-3 text-gray-400" />
+                      <span className="font-medium">{activity.time}</span>
                     </div>
 
                     <div className="flex items-center text-gray-600">
-                      <MapPin size={14} className="mr-2" />
-                      {activity.lapangan}
+                      <MapPin size={16} className="mr-3 text-gray-400" />
+                      <span>{activity.lapangan}</span>
                     </div>
 
                     <div className="flex items-center text-gray-600">
-                      <Users size={14} className="mr-2" />
-                      <span>Fotografer: {activity.fotografer}</span>
+                      <Users size={16} className="mr-3 text-gray-400" />
+                      <span>Fotografer: <span className="font-medium">{activity.fotografer}</span></span>
                     </div>
 
                     <div className="flex items-center text-gray-600">
-                      <Users size={14} className="mr-2" />
-                      <span>Editor: {activity.editor}</span>
+                      <Users size={16} className="mr-3 text-gray-400" />
+                      <span>Editor: <span className="font-medium">{activity.editor}</span></span>
                     </div>
                   </div>
 
                   {activity.description && (
-                    <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-700">
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-700 leading-relaxed">
                       {activity.description}
                     </div>
                   )}
@@ -453,9 +450,9 @@ const Calendar = ({ events = [], onDateSelect, selectedDate }) => {
                     onClick={() => {
                       alert(`Melihat detail lengkap untuk ${activity.team}`);
                     }}
-                    className="w-full mt-3 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md py-2 px-3 text-sm font-medium transition-all duration-200 flex items-center justify-center"
+                    className="w-full mt-4 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg py-3 px-4 text-sm font-medium transition-all duration-200 flex items-center justify-center"
                   >
-                    <Eye size={14} className="mr-2" />
+                    <Eye size={16} className="mr-2" />
                     Lihat Detail
                   </button>
                 </div>
@@ -463,9 +460,9 @@ const Calendar = ({ events = [], onDateSelect, selectedDate }) => {
             </div>
 
             {/* Popup Footer */}
-            <div className="px-4 py-3 bg-gray-50 rounded-b-lg text-center">
-              <p className="text-xs text-gray-500">
-                Total {popupData.activities.length} kegiatan
+            <div className="px-6 py-4 bg-gray-50 text-center border-t">
+              <p className="text-sm text-gray-600 font-medium">
+                Total {popupData.activities.length} kegiatan pada tanggal ini
               </p>
             </div>
           </div>
@@ -474,17 +471,17 @@ const Calendar = ({ events = [], onDateSelect, selectedDate }) => {
 
       <style jsx>{`
         .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
+          animation: fadeIn 0.3s ease-out;
         }
 
         @keyframes fadeIn {
           from {
             opacity: 0;
-            transform: translateY(-10px) translateX(-50%);
+            transform: scale(0.9);
           }
           to {
             opacity: 1;
-            transform: translateY(0) translateX(-50%);
+            transform: scale(1);
           }
         }
       `}</style>

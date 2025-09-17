@@ -9,29 +9,30 @@ class Schedule extends Model
 {
     use HasFactory;
 
-    protected $table = 'schedules';
-
     protected $fillable = [
         'tanggal',
-        'jam_mulai',
-        'jam_selesai',
-        'nama_event',
-        'id_fotografer',
-        'id_editor',
+        'jamMulai',
+        'jamSelesai',
+        'namaEvent',
+        'fotografer_id',
+        'editor_id',
         'lapangan',
         'status',
-
+        'totalJam',
+        'jamFotografer',
+        'jamEditor',
+        'catatan',
+        'linkGdriveFotografer',
+        'linkGdriveEditor',
     ];
-
-    public $timestamps = false;
 
     public function fotografer()
     {
-        return $this->belongsTo(User::class, 'id_fotografer');
+        return $this->belongsTo(Fotografer::class);
     }
 
     public function editor()
     {
-        return $this->belongsTo(User::class, 'id_editor');
+        return $this->belongsTo(Editor::class);
     }
 }

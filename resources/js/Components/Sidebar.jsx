@@ -35,8 +35,8 @@ const Sidebar = ({ currentRoute = 'dashboard' }) => {
       key: 'laporan',
       label: 'Laporan',
       icon: FileText,
-      route: 'laporan',
-      href: '/laporan'
+      route: 'schedule',
+      href: '/schedule'
     }
   ];
 
