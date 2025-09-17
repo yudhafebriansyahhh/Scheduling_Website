@@ -172,12 +172,6 @@ const Dashboard = ({ stats, events = [], schedules = [] }) => {
 
           {/* Footer */}
           <footer className="mt-12 py-6 border-t border-gray-200">
-            <div className="text-center text-gray-500 text-sm">
-              <p>&copy; 2025 Dashboard Admin. All rights reserved.</p>
-              <p className="mt-1">
-                Built with React, Inertia.js, and Tailwind CSS
-              </p>
-            </div>
           </footer>
         </div>
       </div>
