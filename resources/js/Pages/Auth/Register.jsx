@@ -11,6 +11,8 @@ export default function Register() {
         email: '',
         password: '',
         password_confirmation: '',
+        no_hp: '',
+        role: '',
     });
 
     const submit = (e) => {
@@ -59,6 +61,37 @@ export default function Register() {
 
                     <InputError message={errors.email} className="mt-2" />
                 </div>
+
+                <div>
+                            <InputLabel htmlFor="role" className="block text-sm font-medium leading-6 text-gray-900" value="Role" />
+                            <div className="mt-2">
+                                <TextInput
+                                    id="role"
+                                    name="role"
+                                    value={data.role}
+                                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                    autoComplete="role"
+                                    onChange={(e) => setData('role', e.target.value)}
+                                    required
+                                />
+                                <InputError message={errors.role} className="mt-2" />
+                            </div>
+                        </div>
+                        <div>
+                            <InputLabel htmlFor="no_hp" className="block text-sm font-medium leading-6 text-gray-900" value="Phone Number" />
+                            <div className="mt-2">
+                                <TextInput
+                                    id="no_hp"
+                                    name="no_hp"
+                                    value={data.no_hp}
+                                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                    autoComplete="no_hp"
+                                    onChange={(e) => setData('no_hp', e.target.value)}
+                                    required
+                                />
+                                <InputError message={errors.no_hp} className="mt-2" />
+                            </div>
+                        </div>
 
                 <div className="mt-4">
                     <InputLabel htmlFor="password" value="Password" />
