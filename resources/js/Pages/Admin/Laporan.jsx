@@ -65,7 +65,7 @@ const useLaporanData = () => {
       tanggal: '2025-09-12',
       jamMulai: '10:00',
       jamSelesai: '16:30',
-      namaTim: 'Tim Delta',
+      namaEvent: 'Tim Delta',
       fotografer: 'Chris Wilson',
       editor: 'Mark Taylor',
       lapangan: 'Lapangan A',
