@@ -9,7 +9,6 @@ const LaporanTable = ({ data, formatDate, handleShowDetail }) => {
             <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Tanggal</th>
             <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Jam Mulai</th>
             <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Jam Selesai</th>
-
             <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Tim</th>
             <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Fotografer</th>
             <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Editor</th>
