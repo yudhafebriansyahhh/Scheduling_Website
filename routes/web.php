@@ -15,7 +15,7 @@ Route::get('/', function () {
     if (Auth::check()) {
         $user = Auth::user();
         if ($user->role == 'admin') {
-            return redirect()->route('admin.index');
+            return redirect()->route('admin');
         }
         // Jika bukan admin, logout otomatis karena web hanya untuk admin
         Auth::logout();
