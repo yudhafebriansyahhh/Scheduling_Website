@@ -6,27 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('fotografer', function (Blueprint $table) {
+        Schema::create('fotografers', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('nama');
-            $table->text('alamat')->nullable();
-            $table->string('no_hp')->nullable();
+            $table->string('alamat');
             $table->string('email')->unique();
-            $table->string('photo')->nullable();
+            $table->string('no_hp', 20);
+            $table->string('photo')->nullable(); // ✅ konsisten
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('fotografers');
+        Schema::dropIfExists('fotographers');
     }
 };

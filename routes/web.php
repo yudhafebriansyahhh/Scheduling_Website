@@ -15,7 +15,7 @@ Route::get('/', function () {
     if (Auth::check()) {
         $user = Auth::user();
         if ($user->role == 'admin') {
-            return redirect()->route('admin');
+            return redirect()->route('admin.index');
         }
         // Jika bukan admin, logout otomatis karena web hanya untuk admin
         Auth::logout();
@@ -29,7 +29,7 @@ Route::get('/', function () {
 Route::resource('admin', AdminController::class);
 Route::resource('fotografer', FotograferController::class);
 Route::resource('editor', EditorController::class);
-Route::resource('laporan', ScheduleController::class);
+Route::resource('schedule', ScheduleController::class);
 
 
 Route::get('/admin', function () {

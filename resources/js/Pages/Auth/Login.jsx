@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import Checkbox from '@/Components/Checkbox';
-import GuestLayout from '@/Layouts/GuestLayout';
+import LoginGuestLayout from '@/Layouts/LoginGuestLayout';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -26,7 +26,7 @@ export default function Login({ status, canResetPassword }) {
     };
 
     return (
-        <GuestLayout>
+        <LoginGuestLayout>
             <Head title="Log in" />
 
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-300 via-blue-500 to-blue-800">
@@ -117,6 +117,6 @@ export default function Login({ status, canResetPassword }) {
                     </div>
                 </div>
             </div>
-        </GuestLayout>
+        </LoginGuestLayout>
     );
 }

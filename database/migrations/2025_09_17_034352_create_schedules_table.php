@@ -16,9 +16,9 @@ return new class extends Migration
             $table->date('tanggal');
             $table->time('jamMulai');
             $table->time('jamSelesai');
-            $table->string('namaTim');
-            $table->foreignId('fotografer_id')->constrained('fotografer')->onDelete('cascade');
-            $table->foreignId('editor_id')->constrained('editor')->onDelete('cascade');
+            $table->string('namaEvent');
+            $table->foreignId('fotografer_id')->constrained('fotografers')->onDelete('cascade');
+            $table->foreignId('editor_id')->constrained('editors')->onDelete('cascade');
             $table->string('lapangan');
             $table->enum('status', ['completed', 'in_progress', 'pending'])->default('pending');
             $table->decimal('jamFotografer', 4, 1);

@@ -59,7 +59,7 @@ const useFilteredData = (data, searchTerm, filterStatus, filterRole) => {
 
       // Always search in these fields
       const basicSearch =
-        item.namaTim.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.namaEvent.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.lapangan.toLowerCase().includes(searchTerm.toLowerCase());
 
       // Role-specific search
@@ -144,7 +144,7 @@ const Laporan = ({ stats }) => {
   };
 
   const handleAddSchedule = () => {
-    alert('Fitur tambah jadwal baru');
+    router.visit(route('schedule.create'));
   };
 
   const handleLogout = () => {
@@ -168,7 +168,7 @@ const Laporan = ({ stats }) => {
       <div className="min-h-screen bg-gray-50 flex">
         {/* Sidebar */}
         <Sidebar
-          currentRoute="laporan"
+          currentRoute="schedule"
           onLogout={handleLogout}
         />
 
@@ -246,7 +246,7 @@ const Laporan = ({ stats }) => {
           <div className="bg-white rounded-lg p-10 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Detail Laporan</h3>
             <div className="space-y-2 text-sm">
-              <p><strong>Tim:</strong> {selectedDetail.namaTim}</p>
+              <p><strong>Tim:</strong> {selectedDetail.namaEvent}</p>
               <p><strong>Tanggal:</strong> {selectedDetail.tanggal}</p>
 
               {/* Conditional display in modal based on filterRole */}

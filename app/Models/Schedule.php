@@ -13,7 +13,7 @@ class Schedule extends Model
         'tanggal',
         'jamMulai',
         'jamSelesai',
-        'namaTim',
+        'namaEvent',
         'fotografer_id',
         'editor_id',
         'lapangan',
