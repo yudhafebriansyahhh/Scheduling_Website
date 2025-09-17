@@ -163,8 +163,8 @@ const Dashboard = ({ stats, events = [], schedules = [] }) => {
             </div>
 
             <div className="bg-white rounded-lg p-4 text-center shadow-sm border">
-              <div className="text-2xl font-bold text-orange-600">
-                {new Date().getHours() < 12 ? 'Pagi' : new Date().getHours() < 17 ? 'Siang' : 'Malam'}
+              <div className="text-2xl font-bold text-gray-500">
+                {new Date().toLocaleTimeString('id-ID')} WIB
               </div>
               <div className="text-sm text-gray-600">Waktu Sekarang</div>
             </div>

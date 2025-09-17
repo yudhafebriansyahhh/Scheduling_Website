@@ -325,26 +325,22 @@ const Laporan = ({ stats }) => {
             <h1 className="text-2xl font-bold text-gray-900 mb-6">Laporan</h1>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-white rounded-lg p-4 shadow-sm border">
-                <div className="text-2xl font-bold text-blue-600">{summary.totalJobs}</div>
+                <div className="text-2xl font-bold text-gray-600">{summary.totalJobs}</div>
                 <div className="text-sm text-gray-600">Total Pekerjaan</div>
               </div>
               <div className="bg-white rounded-lg p-4 shadow-sm border">
-                <div className="text-2xl font-bold text-green-600">{summary.completedJobs}</div>
+                <div className="text-2xl font-bold text-gray-600">{summary.completedJobs}</div>
                 <div className="text-sm text-gray-600">Selesai</div>
               </div>
               <div className="bg-white rounded-lg p-4 shadow-sm border">
-                <div className="text-2xl font-bold text-purple-600">{summary.totalJamFotografer}</div>
+                <div className="text-2xl font-bold text-gray-600">{summary.totalJamFotografer}</div>
                 <div className="text-sm text-gray-600">Jam Fotografer</div>
               </div>
               <div className="bg-white rounded-lg p-4 shadow-sm border">
-                <div className="text-2xl font-bold text-orange-600">{summary.totalJamEditor}</div>
+                <div className="text-2xl font-bold text-gray-600">{summary.totalJamEditor}</div>
                 <div className="text-sm text-gray-600">Jam Editor</div>
-              </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm border">
-                <div className="text-2xl font-bold text-indigo-600">{summary.rataRataJamPerJob}</div>
-                <div className="text-sm text-gray-600">Rata-rata Jam/Job</div>
               </div>
             </div>
 
@@ -421,7 +417,6 @@ const Laporan = ({ stats }) => {
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Editor</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Lapangan</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Total Jam</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jam Fotografer</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jam Editor</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Aksi</th>
@@ -446,12 +441,6 @@ const Laporan = ({ stats }) => {
                         <td className="px-6 py-4 text-sm text-gray-700">{item.editor}</td>
                         <td className="px-6 py-4 text-sm text-gray-700">{item.lapangan}</td>
                         <td className="px-6 py-4">{getStatusBadge(item.status)}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          <div className="flex items-center">
-                            <Clock size={14} className="mr-1 text-gray-400" />
-                            {item.totalJam}h
-                          </div>
-                        </td>
                         <td className="px-6 py-4 text-sm text-gray-700">
                           <div className="flex items-center">
                             <Clock size={14} className="mr-1 text-purple-400" />
