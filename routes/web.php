@@ -33,7 +33,7 @@ Route::resource('schedule', ScheduleController::class);
 
 
 Route::get('/admin', function () {
-    return Inertia::render('Admin/Dashboard');
+    return Inertia::render('Admin/Dasboard');
 })->middleware(['auth', 'verified'])->name('admin');
 
 // Route::middleware('auth')->group(function () {

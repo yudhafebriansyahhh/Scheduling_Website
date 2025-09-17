@@ -20,6 +20,8 @@
         "vite": "^5.0"
     },
     "dependencies": {
+        "@radix-ui/react-popover": "^1.1.15",
+        "cmdk": "^1.1.1",
         "lucide-react": "^0.544.0"
     }
 }

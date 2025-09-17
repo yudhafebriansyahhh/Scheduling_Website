@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 
 const LaporanTable = ({
   filteredData,
@@ -100,7 +101,7 @@ const LaporanTable = ({
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Jam Editor</th>
               )}
 
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Aksi</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -126,7 +127,7 @@ const LaporanTable = ({
                   <td className="px-6 py-4 text-sm text-gray-700">
                     {item.jamSelesai ? item.jamSelesai.slice(0, 5) : '-'}
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.namaTim}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.namaEvent}</td>
 
                   {/* Conditional columns based on filterRole */}
                   {(filterRole === 'all' || filterRole === 'fotografer') && (
@@ -158,13 +159,34 @@ const LaporanTable = ({
                     </td>
                   )}
 
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-3">
                     <button
                       onClick={() => onShowDetail(item)}
                       className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
                     >
                       Detail
                     </button>
+
+                    <Link
+                      href={route('schedule.edit', item.id)}
+                      className="px-3 py-1 mx-2 bg-yellow-400 text-white rounded text-xs font-medium hover:bg-yellow-500 transition-colors"
+                    >
+                      Edit
+                    </Link>
+
+                    <Link
+                      href={route('schedule.destroy', item.id)}
+                      method="delete"
+                      as="button"
+                      className="px-3 py-1 bg-red-400 text-white rounded text-xs font-medium hover:bg-red-500 transition-colors"
+                      onClick={(e) => {
+                        if (!confirm("Yakin hapus schedule ini?")) {
+                          e.preventDefault();
+                        }
+                      }}
+                    >
+                      Hapus
+                    </Link>
                   </td>
                 </tr>
               ))

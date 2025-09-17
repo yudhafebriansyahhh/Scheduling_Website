@@ -5,9 +5,11 @@ import { ArrowLeft } from 'lucide-react';
 // Import components
 import Sidebar from '../../Components/Sidebar';
 import LaporanSummaryCards from '../../Components/Laporan/LaporanSummaryCards';
+// import SummaryCards from '@/Components/Laporan/SummaryCards'
 import LaporanFilters from '../../Components/Laporan/LaporanFilters';
 import LaporanExportButtons from '../../Components/Laporan/LaporanExportButtons';
 import LaporanTable from '../../Components/Laporan/LaporanTable';
+import Filters from '@/Components/Laporan/Filters'
 
 // Import utilities
 import { exportToCSV, exportToPDF } from '../../utils/laporanExportUtils';
@@ -164,8 +166,7 @@ const Laporan = ({ stats }) => {
   return (
     <>
       <Head title="Laporan" />
-
-      <div className="min-h-screen bg-gray-50 flex">
+      <div className="flex h-screen bg-gray-50">
         {/* Sidebar */}
         <Sidebar
           currentRoute="schedule"

@@ -8,7 +8,7 @@ class AdminController extends Controller
 {
     public function index()
 {
-    return inertia('Admin/Dashboard', [
+    return inertia('Admin/Dasboard', [
         'stats' => [
             'jadwal_bulan_ini' => 12,
             'total_fotografer' => 6,
