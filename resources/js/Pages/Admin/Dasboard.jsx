@@ -14,7 +14,7 @@ export default function Dashboard({ stats, events, schedules }) {
     <>
       <Head title="Dashboard" />
 
-      <div className="flex bg-gray-100 min-h-screen">
+      <div className="flex bg-gray-100 dark:bg-gray-950 min-h-screen transition-colors duration-300">
         {/* Sidebar permanen di kiri */}
         <div className="w-64">
           <Sidebar />
@@ -51,12 +51,16 @@ export default function Dashboard({ stats, events, schedules }) {
           {/* Tabel Jadwal */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Jadwal</h2>
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                Jadwal
+              </h2>
               <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                 + Tambah
               </button>
             </div>
-            <ScheduleTable schedules={schedules} />
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 transition-colors duration-300">
+              <ScheduleTable schedules={schedules} />
+            </div>
           </div>
         </div>
       </div>

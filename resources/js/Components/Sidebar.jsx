@@ -1,14 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from '@inertiajs/react';
 import {
   Home,
   Camera,
   Edit,
   FileText,
-  LogOut
+  LogOut,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const Sidebar = ({ currentRoute = 'dashboard' }) => {
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Simpan preferensi ke localStorage
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
+  // Ambil preferensi dari localStorage saat load
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      setDarkMode(true);
+    }
+  }, []);
+
   const menuItems = [
     {
       key: 'dashboard',
@@ -42,19 +65,30 @@ const Sidebar = ({ currentRoute = 'dashboard' }) => {
 
   const handleLogout = () => {
     if (window.confirm('Apakah Anda yakin ingin logout?')) {
-      // Implement logout logic here
-      // router.post('/logout');
       console.log('Logout clicked');
+      // router.post('/logout');
     }
   };
 
   return (
-    <div className="w-64 bg-white shadow-lg min-h-screen">
-      <div className="p-6 border-b">
-        <h2 className="text-xl font-bold text-gray-800">Dashboard Admin</h2>
-        <p className="text-sm text-gray-500">Selamat Datang</p>
+    <div className="w-64 bg-white dark:bg-gray-900 shadow-lg min-h-screen transition-colors duration-300">
+      {/* Header */}
+      <div className="p-6 border-b dark:border-gray-700 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Dashboard Admin</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Selamat Datang</p>
+        </div>
+
+        {/* Toggle Switch */}
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+        >
+          {darkMode ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-gray-700" />}
+        </button>
       </div>
 
+      {/* Menu */}
       <nav className="mt-6">
         <div className="px-6">
           {menuItems.map((item) => {
@@ -69,7 +103,7 @@ const Sidebar = ({ currentRoute = 'dashboard' }) => {
                   flex items-center p-3 mb-2 rounded-lg transition-colors duration-200
                   ${isActive
                     ? 'bg-blue-500 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
               >
@@ -80,10 +114,11 @@ const Sidebar = ({ currentRoute = 'dashboard' }) => {
           })}
         </div>
 
-        <div className="px-6 mt-8 pt-8 border-t">
+        {/* Logout */}
+        <div className="px-6 mt-8 pt-8 border-t dark:border-gray-700">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
+            className="w-full flex items-center p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200"
           >
             <LogOut size={20} className="mr-3" />
             Logout
