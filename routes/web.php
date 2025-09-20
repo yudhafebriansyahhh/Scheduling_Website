@@ -32,9 +32,12 @@ Route::resource('editor', EditorController::class);
 Route::resource('schedule', ScheduleController::class);
 
 
-Route::get('/admin', function () {
-    return Inertia::render('Admin/Dasboard');
-})->middleware(['auth', 'verified'])->name('admin');
+
+
+Route::get('/admin', [AdminController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('admin');
+
 
 // Route::middleware('auth')->group(function () {
 //     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
