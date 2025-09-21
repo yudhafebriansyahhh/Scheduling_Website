@@ -34,7 +34,7 @@ const EditSchedule = () => {
       <div className="min-h-screen bg-gray-50 flex">
         {/* Sidebar */}
         <Sidebar
-          currentRoute="fotografer"
+          currentRoute="schedule"
           onLogout={() => {
             if (window.confirm('Apakah Anda yakin ingin logout?')) {
               window.location.href = '/login';

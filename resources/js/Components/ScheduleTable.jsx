@@ -7,38 +7,8 @@ const ScheduleTable = ({ schedules = [], onAdd, onEdit, onDelete, onFilter }) =>
   const [sortField, setSortField] = useState('jam');
   const [sortDirection, setSortDirection] = useState('asc');
 
-  // Sample data if no schedules provided
-  const sampleSchedules = [
-    {
-      id: 1,
-      jam: '08:00 - 10:00',
-      namaTim: 'FC Barcelona',
-      fotografer: 'John Doe',
-      editor: 'Jane Smith',
-      lapangan: 'Lapangan A',
-      status: 'active'
-    },
-    {
-      id: 2,
-      jam: '10:30 - 12:30',
-      namaTim: 'Real Madrid',
-      fotografer: 'Mike Johnson',
-      editor: 'Sarah Wilson',
-      lapangan: 'Lapangan B',
-      status: 'completed'
-    },
-    {
-      id: 3,
-      jam: '14:00 - 16:00',
-      namaTim: 'Manchester United',
-      fotografer: 'David Brown',
-      editor: 'Emily Davis',
-      lapangan: 'Lapangan C',
-      status: 'pending'
-    }
-  ];
 
-  const data = schedules.length > 0 ? schedules : sampleSchedules;
+  const data = schedules || [];
 
   // Filter and search logic
   const filteredData = data.filter(item => {

@@ -31,6 +31,8 @@ Route::resource('fotografer', FotograferController::class);
 Route::resource('editor', EditorController::class);
 Route::resource('schedule', ScheduleController::class);
 
+// Route untuk mendapatkan jadwal berdasarkan tanggal (AJAX)
+Route::get('/admin/schedules-by-date', [AdminController::class, 'getSchedulesByDate'])->name('admin.schedules.by-date');
 
 Route::get('/admin', function () {
     return Inertia::render('Admin/Dasboard');
