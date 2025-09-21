@@ -2,16 +2,24 @@
 
 namespace App\Http\Controllers;
 
+<<<<<<< HEAD
 use Illuminate\Http\Request;
 use App\Models\Schedule;
 use App\Models\Fotografer;
 use App\Models\Editor;
+=======
+use App\Models\Schedule;
+use App\Models\Fotografer;
+use App\Models\Editor;
+use Inertia\Inertia;
+>>>>>>> ad9fa263c1c40b5c59205b95d12affd3d0fc9b49
 use Carbon\Carbon;
 
 class AdminController extends Controller
 {
     public function index()
     {
+<<<<<<< HEAD
         // Get current month data for stats
         $currentMonth = Carbon::now()->month;
         $currentYear = Carbon::now()->year;
@@ -141,4 +149,39 @@ class AdminController extends Controller
 
         return response()->json($schedules);
     }
+=======
+        $now = Carbon::now();
+
+        // Ambil data schedule
+        $schedules = Schedule::with(['fotografer', 'editor'])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('jamMulai', 'desc')
+            ->get();
+
+        // Siapkan data event untuk FullCalendar
+        $events = $schedules->map(function ($s) {
+            return [
+                'id'    => $s->id,
+                'title' => $s->namaEvent,
+                'start' => $s->tanggal . ' ' . $s->jamMulai,
+                'end'   => $s->tanggal . ' ' . $s->jamSelesai,
+            ];
+        });
+
+        // Statistik
+        $stats = [
+            'jadwal_bulan_ini' => Schedule::whereMonth('tanggal', $now->month)
+                ->whereYear('tanggal', $now->year)
+                ->count(),
+            'total_fotografer' => Fotografer::count(),
+            'total_editor'     => Editor::count(),
+        ];
+
+        return Inertia::render('Admin/Dasboard', [
+            'schedules' => $schedules,
+            'events'    => $events,
+            'stats'     => $stats,
+        ]);
+    }
+>>>>>>> ad9fa263c1c40b5c59205b95d12affd3d0fc9b49
 }

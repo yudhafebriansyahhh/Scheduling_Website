@@ -34,9 +34,12 @@ Route::resource('schedule', ScheduleController::class);
 // Route untuk mendapatkan jadwal berdasarkan tanggal (AJAX)
 Route::get('/admin/schedules-by-date', [AdminController::class, 'getSchedulesByDate'])->name('admin.schedules.by-date');
 
-Route::get('/admin', function () {
-    return Inertia::render('Admin/Dasboard');
-})->middleware(['auth', 'verified'])->name('admin');
+
+
+Route::get('/admin', [AdminController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('admin');
+
 
 // Route::middleware('auth')->group(function () {
 //     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
