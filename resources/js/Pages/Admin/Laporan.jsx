@@ -13,7 +13,7 @@ import LaporanTable from '../../Components/Laporan/LaporanTable';
 import { exportToCSV, exportToPDF } from '../../utils/laporanExportUtils';
 
 // Custom hook untuk filtering dan summary
-const useFilteredData = (data, searchTerm, filterStatus, filterRole) => {
+const useFilteredData = (data, searchTerm, filterStatus, filterRole, filterDateFrom, filterDateTo) => {
   // Konversi ke menit
   const timeToMinutes = (timeValue) => {
     if (!timeValue) return 0;
@@ -52,6 +52,20 @@ const useFilteredData = (data, searchTerm, filterStatus, filterRole) => {
     return value % 1 === 0 ? value.toFixed(0) : value.toFixed(1);
   };
 
+  // Helper untuk parse tanggal dari berbagai format
+  const parseDate = (dateValue) => {
+    if (!dateValue) return null;
+
+    try {
+      const date = new Date(dateValue);
+      // Reset ke awal hari untuk perbandingan yang akurat
+      date.setHours(0, 0, 0, 0);
+      return date;
+    } catch (error) {
+      return null;
+    }
+  };
+
   const filteredData = useMemo(() => {
     return data.filter(item => {
       // Dynamic search based on filterRole
@@ -77,10 +91,28 @@ const useFilteredData = (data, searchTerm, filterStatus, filterRole) => {
         matchSearch = basicSearch;
       }
 
+      // Status filter
       const matchStatus = filterStatus === 'all' || item.status === filterStatus;
-      return matchSearch && matchStatus;
+
+      // Date filter
+      let matchDate = true;
+      if (filterDateFrom || filterDateTo) {
+        const itemDate = parseDate(item.tanggal);
+        const fromDate = parseDate(filterDateFrom);
+        const toDate = parseDate(filterDateTo);
+
+        if (itemDate) {
+          if (fromDate && itemDate < fromDate) matchDate = false;
+          if (toDate && itemDate > toDate) matchDate = false;
+        } else {
+          // Jika tidak bisa parse tanggal item, exclude dari hasil
+          matchDate = false;
+        }
+      }
+
+      return matchSearch && matchStatus && matchDate;
     });
-  }, [data, searchTerm, filterStatus, filterRole]);
+  }, [data, searchTerm, filterStatus, filterRole, filterDateFrom, filterDateTo]);
 
   const summary = useMemo(() => {
     const totalMinutesFotografer = filteredData.reduce((sum, item) => {
@@ -113,10 +145,28 @@ const Laporan = ({ stats }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const { filteredData, summary } = useFilteredData(schedules, searchTerm, filterStatus, filterRole);
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const { filteredData, summary } = useFilteredData(
+    schedules,
+    searchTerm,
+    filterStatus,
+    filterRole,
+    filterDateFrom,
+    filterDateTo
+  );
+
+  // Reset pagination when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, filterRole, filterDateFrom, filterDateTo, itemsPerPage]);
 
   // Event handlers
   const handleBack = () => {
@@ -139,7 +189,7 @@ const Laporan = ({ stats }) => {
   };
 
   const handleAddSchedule = () => {
-    router.visit(route('schedule.create'));
+    router.visit('/schedule/create');
   };
 
   const handleLogout = () => {
@@ -184,7 +234,14 @@ const Laporan = ({ stats }) => {
             {/* Summary Cards */}
             <LaporanSummaryCards summary={summary} />
 
-            {/* Filters */}
+            {/* Export Buttons */}
+            <LaporanExportButtons
+              onExportCSV={handleExportCSV}
+              onExportPDF={handleExportPDF}
+              onAddSchedule={handleAddSchedule}
+            />
+
+            {/* Filters with Pagination */}
             <LaporanFilters
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
@@ -192,13 +249,14 @@ const Laporan = ({ stats }) => {
               setFilterStatus={setFilterStatus}
               filterRole={filterRole}
               setFilterRole={setFilterRole}
-            />
-
-            {/* Export Buttons */}
-            <LaporanExportButtons
-              onExportCSV={handleExportCSV}
-              onExportPDF={handleExportPDF}
-              onAddSchedule={handleAddSchedule}
+              filterDateFrom={filterDateFrom}
+              setFilterDateFrom={setFilterDateFrom}
+              filterDateTo={filterDateTo}
+              setFilterDateTo={setFilterDateTo}
+              itemsPerPage={itemsPerPage}
+              setItemsPerPage={setItemsPerPage}
+              filteredCount={filteredData.length}
+              totalCount={schedules.length}
             />
           </div>
 
@@ -207,25 +265,10 @@ const Laporan = ({ stats }) => {
             filteredData={filteredData}
             onShowDetail={handleShowDetail}
             filterRole={filterRole}
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
           />
-
-          {/* Footer */}
-          {filteredData.length > 0 && (
-            <div className="mt-6 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600 dark:text-gray-400 gap-4">
-              <div>
-                Menampilkan {filteredData.length} dari {schedules.length} data laporan
-              </div>
-              <div className="flex flex-wrap items-center gap-4 text-center">
-                {/* Conditional display based on filterRole */}
-                {(filterRole === 'all' || filterRole === 'fotografer') && (
-                  <div>Total Jam Fotografer: <span className="font-semibold text-purple-600 dark:text-purple-400">{summary.totalJamFotografer}h</span></div>
-                )}
-                {(filterRole === 'all' || filterRole === 'editor') && (
-                  <div>Total Jam Editor: <span className="font-semibold text-orange-600 dark:text-orange-400">{summary.totalJamEditor}h</span></div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

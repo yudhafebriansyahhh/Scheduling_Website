@@ -7,7 +7,8 @@ const CustomDateInput = ({
   placeholder = "Pilih tanggal",
   required = false,
   disabled = false,
-  className = ""
+  className = "",
+  compact = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [displayDate, setDisplayDate] = useState(new Date());
@@ -16,7 +17,20 @@ const CustomDateInput = ({
   // Format date untuk display
   const formatDisplayDate = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
+
+    // Parse date dengan timezone lokal
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+
+    if (compact) {
+      // Format compact: "04 Sep 2025"
+      return date.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+
     return date.toLocaleDateString('id-ID', {
       day: '2-digit',
       month: 'long',
@@ -35,7 +49,12 @@ const CustomDateInput = ({
 
     const days = [];
     const today = new Date();
-    const selectedDate = value ? new Date(value) : null;
+    let selectedDate = null;
+
+    if (value) {
+      const [year, month, day] = value.split('-').map(Number);
+      selectedDate = new Date(year, month - 1, day);
+    }
 
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);
@@ -58,7 +77,12 @@ const CustomDateInput = ({
   };
 
   const handleDateSelect = (date) => {
-    const formattedDate = date.toISOString().split('T')[0];
+    // Format tanggal dengan benar (tanpa timezone issues)
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+
     onChange(formattedDate);
     setIsOpen(false);
   };
@@ -90,7 +114,8 @@ const CustomDateInput = ({
   // Set initial display date based on value
   useEffect(() => {
     if (value) {
-      setDisplayDate(new Date(value));
+      const [year, month, day] = value.split('-').map(Number);
+      setDisplayDate(new Date(year, month - 1, day));
     }
   }, [value]);
 
@@ -107,17 +132,18 @@ const CustomDateInput = ({
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={`
-          w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg
+          w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
           bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
           focus:ring-2 focus:ring-blue-500 focus:border-blue-500
           cursor-pointer flex items-center justify-between
+          ${compact ? 'text-sm' : ''}
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-gray-400 dark:hover:border-gray-500'}
         `}
       >
         <span className={value ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}>
           {value ? formatDisplayDate(value) : placeholder}
         </span>
-        <Calendar size={20} className="text-gray-400 dark:text-gray-500" />
+        <Calendar size={compact ? 16 : 20} className="text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2" />
       </div>
 
       {/* Required indicator */}

@@ -10,6 +10,8 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingFotografer, setEditingFotografer] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const { flash } = usePage().props;
 
   const [formData, setFormData] = useState({
@@ -30,6 +32,85 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
     fotografer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     fotografer.no_hp.includes(searchTerm)
   );
+
+  // Pagination logic
+  const totalItems = filteredFotografers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedFotografers = filteredFotografers.slice(startIndex, endIndex);
+
+  // Reset pagination when filters or items per page change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, itemsPerPage]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // Previous button
+    pages.push(
+      <button
+        key="prev"
+        onClick={() => handlePageChange(currentPage - 1)}
+        disabled={currentPage === 1 || isLoading}
+        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Sebelumnya
+      </button>
+    );
+
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => handlePageChange(i)}
+          disabled={isLoading}
+          className={`px-3 py-2 text-sm font-medium border-t border-b border-r border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed ${
+            currentPage === i
+              ? 'bg-blue-50 text-blue-600 border-blue-500 dark:bg-blue-900/20 dark:text-blue-300'
+              : 'bg-white text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Next button
+    pages.push(
+      <button
+        key="next"
+        onClick={() => handlePageChange(currentPage + 1)}
+        disabled={currentPage === totalPages || isLoading}
+        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Selanjutnya
+      </button>
+    );
+
+    return (
+      <div className="flex items-center justify-center mt-6">
+        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+          {pages}
+        </nav>
+      </div>
+    );
+  };
 
   const handleBack = () => {
     window.history.back();
@@ -239,22 +320,41 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
               </div>
             )}
 
-            <div className="flex justify-between items-center mb-6">
-              <div className="relative w-80">
-                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-                <input
-                  type="text"
-                  placeholder="Cari Fotografer..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                  disabled={isLoading}
-                />
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Cari Fotografer..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-80 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {/* Items per page selector */}
+                <div className="flex items-center space-x-2 whitespace-nowrap">
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Tampilkan:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    disabled={isLoading}
+                    className="px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm min-w-[70px] appearance-none"
+                    >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">per halaman</span>
+                </div>
               </div>
 
               <button
                 onClick={handleAddFotografer}
-                className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors disabled:opacity-50"
+                className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors disabled:opacity-50 flex-shrink-0"
                 disabled={isLoading}
               >
                 <Plus size={16} className="mr-2" />
@@ -278,16 +378,16 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
                 </tr>
               </thead>
               <tbody>
-                {filteredFotografers.length === 0 ? (
+                {paginatedFotografers.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       {searchTerm ? 'Tidak ada fotografer yang ditemukan' : 'Belum ada data fotografer'}
                     </td>
                   </tr>
                 ) : (
-                  filteredFotografers.map((fotografer, index) => (
+                  paginatedFotografers.map((fotografer, index) => (
                     <tr key={fotografer.id} className="border-t dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{index + 1}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{startIndex + index + 1}</td>
                       <td className="px-6 py-4">
                         <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                           {fotografer.photo ? (
@@ -332,10 +432,29 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
             </table>
           </div>
 
-          {filteredFotografers.length > 0 && (
-            <div className="mt-4 flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
-              <div>
-                Menampilkan {filteredFotografers.length} dari {fotografers.length} fotografer
+          {/* Pagination and Info */}
+          {totalItems > 0 && (
+            <div className="mt-6">
+              {/* Pagination */}
+              {renderPagination()}
+
+              {/* Page Info */}
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-4 text-sm text-gray-600 dark:text-gray-400 gap-2">
+                <div>
+                  Menampilkan {startIndex + 1}-{Math.min(endIndex, totalItems)} dari {totalItems} fotografer
+                  {fotografers.length !== totalItems && ` (difilter dari ${fotografers.length} total)`}
+                </div>
+                <div className="flex items-center space-x-2">
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="px-3 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md transition-colors"
+                      disabled={isLoading}
+                    >
+                      Reset pencarian
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
