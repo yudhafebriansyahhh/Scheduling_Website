@@ -13,6 +13,14 @@ import {
 const Sidebar = ({ currentRoute = 'dashboard' }) => {
   const [darkMode, setDarkMode] = useState(false);
 
+  // Ambil preferensi dari localStorage saat load
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      setDarkMode(true);
+    }
+  }, []);
+
   // Simpan preferensi ke localStorage
   useEffect(() => {
     if (darkMode) {
@@ -23,14 +31,6 @@ const Sidebar = ({ currentRoute = 'dashboard' }) => {
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
-
-  // Ambil preferensi dari localStorage saat load
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setDarkMode(true);
-    }
-  }, []);
 
   const menuItems = [
     {
@@ -71,7 +71,7 @@ const Sidebar = ({ currentRoute = 'dashboard' }) => {
   };
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-900 shadow-lg min-h-screen transition-colors duration-300">
+    <div className="w-64 bg-white dark:bg-gray-900 shadow-lg h-screen sticky top-0 transition-colors duration-300 overflow-y-auto">
       {/* Header */}
       <div className="p-6 border-b dark:border-gray-700 flex items-center justify-between">
         <div>
@@ -89,7 +89,7 @@ const Sidebar = ({ currentRoute = 'dashboard' }) => {
       </div>
 
       {/* Menu */}
-      <nav className="mt-6">
+      <nav className="mt-6 flex-1">
         <div className="px-6">
           {menuItems.map((item) => {
             const Icon = item.icon;

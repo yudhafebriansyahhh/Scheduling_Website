@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, FileText, Calendar } from 'lucide-react';
+import { Download, FileText, Plus } from 'lucide-react';
 
 const LaporanExportButtons = ({
   onExportCSV,
@@ -7,27 +7,29 @@ const LaporanExportButtons = ({
   onAddSchedule
 }) => {
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col sm:flex-row gap-3 mb-6">
       <button
         onClick={onExportCSV}
-        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors text-sm"
+        className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
       >
-        <Download size={16} className="mr-2" />
-        Export CSV
+        <Download className="h-4 w-4" />
+        <span className="hidden sm:inline">Export CSV</span>
       </button>
+
       <button
         onClick={onExportPDF}
-        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors text-sm"
+        className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
       >
-        <FileText size={16} className="mr-2" />
-        Export PDF
+        <FileText className="h-4 w-4" />
+        <span className="hidden sm:inline">Export PDF</span>
       </button>
+
       <button
         onClick={onAddSchedule}
-        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors text-sm"
+        className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
       >
-        <Calendar size={16} className="mr-2" />
-        Tambah Data Schedule
+        <Plus className="h-4 w-4" />
+        <span className="hidden sm:inline">Tambah Data Schedule</span>
       </button>
     </div>
   );

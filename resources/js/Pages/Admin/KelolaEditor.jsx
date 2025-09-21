@@ -224,16 +224,16 @@ const KelolaEditor = ({ editors: initialEditors }) => {
     <>
       <Head title="Kelola Editor" />
 
-      <div className="min-h-screen bg-gray-50 flex">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex transition-colors duration-300">
         <Sidebar currentRoute="editor" />
 
         <div className="flex-1 p-6">
           {/* Loading overlay */}
           {isLoading && (
             <div className="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center z-40">
-              <div className="bg-white p-4 rounded-lg">
+              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-2 text-sm text-gray-600">Memproses...</p>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Memproses...</p>
               </div>
             </div>
           )}
@@ -242,7 +242,7 @@ const KelolaEditor = ({ editors: initialEditors }) => {
             <div className="flex items-center mb-4">
               <button
                 onClick={handleBack}
-                className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+                className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
                 disabled={isLoading}
               >
                 <ArrowLeft size={20} className="mr-2" />
@@ -250,36 +250,36 @@ const KelolaEditor = ({ editors: initialEditors }) => {
               </button>
             </div>
 
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Kelola Data Editor</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Kelola Data Editor</h1>
 
             {/* Flash message */}
             {flash?.success && (
-              <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+              <div className="mb-4 p-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded-lg">
                 {flash.success}
               </div>
             )}
             {flash?.error && (
-              <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+              <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 rounded-lg">
                 {flash.error}
               </div>
             )}
 
             <div className="flex justify-between items-center mb-6">
               <div className="relative w-80">
-                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                 <input
                   type="text"
                   placeholder="Cari Editor..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   disabled={isLoading}
                 />
               </div>
 
               <button
                 onClick={handleAddEditor}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors disabled:opacity-50"
+                className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors disabled:opacity-50"
                 disabled={isLoading}
               >
                 <Plus size={16} className="mr-2" />
@@ -289,32 +289,32 @@ const KelolaEditor = ({ editors: initialEditors }) => {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 w-16">No</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Photo</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Nama</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Alamat</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">No HP</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Email</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Aksi</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 w-16">No</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Photo</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Nama</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Alamat</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">No HP</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Email</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredEditors.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       {searchTerm ? 'Tidak ada editor yang ditemukan' : 'Belum ada data editor'}
                     </td>
                   </tr>
                 ) : (
                   filteredEditors.map((editor, index) => (
-                    <tr key={editor.id} className="border-t hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-gray-600">{index + 1}</td>
+                    <tr key={editor.id} className="border-t dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{index + 1}</td>
                       <td className="px-6 py-4">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                           {editor.photo ? (
                             <img
                               src={`/storage/${editor.photo}`}
@@ -322,28 +322,28 @@ const KelolaEditor = ({ editors: initialEditors }) => {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-300">
-                              <span className="text-xs text-gray-500">No Photo</span>
+                            <div className="w-full h-full flex items-center justify-center bg-gray-300 dark:bg-gray-600">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">No Photo</span>
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{editor.nama}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{editor.alamat}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{editor.no_hp}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{editor.email}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{editor.nama}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{editor.alamat}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{editor.no_hp}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{editor.email}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEditEditor(editor)}
-                            className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium hover:bg-yellow-200 transition-colors disabled:opacity-50"
+                            className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300 rounded text-xs font-medium hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors disabled:opacity-50"
                             disabled={isLoading}
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleDeleteEditor(editor)}
-                            className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
+                            className="px-3 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 rounded text-xs font-medium hover:bg-red-200 dark:hover:bg-red-800 transition-colors disabled:opacity-50"
                             disabled={isLoading}
                           >
                             Hapus
@@ -358,7 +358,7 @@ const KelolaEditor = ({ editors: initialEditors }) => {
           </div>
 
           {filteredEditors.length > 0 && (
-            <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
+            <div className="mt-4 flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
               <div>
                 Menampilkan {filteredEditors.length} dari {editors.length} editor
               </div>
