@@ -1,6 +1,40 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, X, Clock, MapPin, Users, Eye, Calendar as CalendarIcon, List, Grid } from 'lucide-react';
 
+// Reusable ScrollContainer component
+const ScrollContainer = ({ children, maxHeight = '400px', className = '', style = {} }) => {
+  const defaultStyle = {
+    maxHeight,
+    scrollbarWidth: 'thin',
+    scrollbarColor: '#3b82f6 transparent',
+    ...style
+  };
+
+  return (
+    <div
+      className={`overflow-y-auto pr-2 custom-scrollbar ${className}`}
+      style={defaultStyle}
+    >
+      {children}
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #3b82f6;
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #2563eb;
+        }
+      `}</style>
+    </div>
+  );
+};
+
 const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onEventClick }) => {
   console.log('Calendar Props:', { events, schedules });
 
@@ -245,9 +279,9 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
   };
 
   const getStatusColor = (status) => ({
-    'in_progress': 'bg-green-500',
+    'in_progress': 'bg-blue-500',
     'pending': 'bg-yellow-500',
-    'completed': 'bg-blue-500',
+    'completed': 'bg-green-500',
     'cancelled': 'bg-red-500'
   }[status] || 'bg-gray-500');
 
@@ -382,7 +416,7 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
     </div>
   );
 
-  // Render Week View with better mobile responsiveness
+  // Render Week View with ScrollContainer
   const renderWeekView = () => {
     const weekDays = generateWeekDays();
     const timeSlots = generateTimeSlots().filter((_, idx) => idx % 4 === 0);
@@ -408,58 +442,60 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
           ))}
         </div>
 
-        {/* Grid waktu dengan ukuran yang lebih compact dan responsive */}
-        <div className="min-w-[600px] max-h-[400px] overflow-y-auto bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-          {timeSlots.map((timeSlot, slotIdx) => (
-            <div key={timeSlot} className="grid grid-cols-8 gap-px border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
-              <div className="p-1 sm:p-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center min-h-[40px] sm:min-h-[50px]">
-                <span className="font-mono">{timeSlot}</span>
+        {/* Grid waktu dengan ScrollContainer */}
+        <div className="min-w-[600px] bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+          <ScrollContainer maxHeight="400px">
+            {timeSlots.map((timeSlot, slotIdx) => (
+              <div key={timeSlot} className="grid grid-cols-8 gap-px border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
+                <div className="p-1 sm:p-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center min-h-[40px] sm:min-h-[50px]">
+                  <span className="font-mono">{timeSlot}</span>
+                </div>
+
+                {weekDays.map((day, dayIdx) => {
+                  const dayActivities = day.activities.filter(activity => {
+                    const activityStart = activity.timeStart || '00:00';
+                    const activityEnd = activity.timeEnd || '23:59';
+                    const [slotHour] = timeSlot.split(':').map(Number);
+                    const [startHour] = activityStart.split(':').map(Number);
+                    const [endHour] = activityEnd.split(':').map(Number);
+
+                    return startHour <= slotHour && endHour > slotHour;
+                  });
+
+                  return (
+                    <div
+                      key={dayIdx}
+                      className="p-0.5 sm:p-1 min-h-[40px] sm:min-h-[50px] border-r border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors relative"
+                      onClick={() => handleDateClick({ date: day.date, dateStr: day.dateStr })}
+                    >
+                      {dayActivities.map(activity => (
+                        <div
+                          key={activity.id}
+                          className={`text-xs p-1 sm:p-1.5 mb-1 rounded-md text-white shadow-sm ${getStatusColor(activity.status)} hover:shadow-md transition-shadow cursor-pointer`}
+                          title={`${activity.team}\n${activity.time}\n${activity.lapangan || ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEventClick && onEventClick(activity.id);
+                          }}
+                        >
+                          <div className="font-medium truncate">{activity.team}</div>
+                          {activity.lapangan && activity.lapangan !== '-' && (
+                            <div className="text-xs opacity-90 truncate hidden sm:block">{activity.lapangan}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
-
-              {weekDays.map((day, dayIdx) => {
-                const dayActivities = day.activities.filter(activity => {
-                  const activityStart = activity.timeStart || '00:00';
-                  const activityEnd = activity.timeEnd || '23:59';
-                  const [slotHour] = timeSlot.split(':').map(Number);
-                  const [startHour] = activityStart.split(':').map(Number);
-                  const [endHour] = activityEnd.split(':').map(Number);
-
-                  return startHour <= slotHour && endHour > slotHour;
-                });
-
-                return (
-                  <div
-                    key={dayIdx}
-                    className="p-0.5 sm:p-1 min-h-[40px] sm:min-h-[50px] border-r border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors relative"
-                    onClick={() => handleDateClick({ date: day.date, dateStr: day.dateStr })}
-                  >
-                    {dayActivities.map(activity => (
-                      <div
-                        key={activity.id}
-                        className={`text-xs p-1 sm:p-1.5 mb-1 rounded-md text-white shadow-sm ${getStatusColor(activity.status)} hover:shadow-md transition-shadow cursor-pointer`}
-                        title={`${activity.team}\n${activity.time}\n${activity.lapangan || ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEventClick && onEventClick(activity.id);
-                        }}
-                      >
-                        <div className="font-medium truncate">{activity.team}</div>
-                        {activity.lapangan && activity.lapangan !== '-' && (
-                          <div className="text-xs opacity-90 truncate hidden sm:block">{activity.lapangan}</div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+            ))}
+          </ScrollContainer>
         </div>
       </div>
     );
   };
 
-  // Render Day View with improved mobile support
+  // Render Day View with ScrollContainer
   const renderDayView = () => {
     const dateStr = currentDate.toISOString().split('T')[0];
     const dayActivities = schedulesByDate[dateStr] || [];
@@ -477,9 +513,9 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
           </p>
         </div>
 
-        {/* Time grid yang lebih compact dan responsive */}
+        {/* Time grid dengan ScrollContainer */}
         <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="max-h-[400px] overflow-y-auto">
+          <ScrollContainer maxHeight="400px">
             {timeSlots.map(timeSlot => {
               const slotActivities = dayActivities.filter(activity => {
                 const activityStart = activity.timeStart || '00:00';
@@ -538,7 +574,7 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
                 </div>
               );
             })}
-          </div>
+          </ScrollContainer>
         </div>
 
         {/* Summary card - responsive */}
@@ -563,75 +599,92 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
     );
   };
 
-  // Render List View with improved mobile layout
+  // Render List View with ScrollContainer
   const renderListView = () => {
     const listEvents = getListEvents();
 
     return (
-      <div className="space-y-3 sm:space-y-4">
+      <div className="space-y-4">
         {listEvents.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             Tidak ada jadwal yang ditemukan
           </div>
         ) : (
-          listEvents.map(event => (
-            <div
-              key={`${event.dateStr}-${event.id}`}
-              className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-              onClick={() => onEventClick && onEventClick(event.id)}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-2">
-                    <span className={`px-2 py-1 text-xs text-white rounded-full ${getStatusColor(event.status)} inline-block w-fit`}>
-                      {getStatusText(event.status)}
-                    </span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {formatDate(event.date)}
-                    </span>
-                  </div>
-
-                  <h3 className="font-medium text-gray-900 dark:text-white mb-2 truncate">
-                    {event.team}
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <div className="flex items-center space-x-2">
-                      <Clock size={14} />
-                      <span>{event.time}</span>
-                    </div>
-
-                    {event.lapangan !== '-' && (
-                      <div className="flex items-center space-x-2">
-                        <MapPin size={14} />
-                        <span className="truncate">{event.lapangan}</span>
-                      </div>
-                    )}
-
-                    {event.fotografer !== '-' && (
-                      <div className="flex items-center space-x-2">
-                        <Users size={14} />
-                        <span className="truncate">Fotografer: {event.fotografer}</span>
-                      </div>
-                    )}
-
-                    {event.editor !== '-' && (
-                      <div className="flex items-center space-x-2">
-                        <Eye size={14} />
-                        <span className="truncate">Editor: {event.editor}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {event.description !== 'Tidak ada deskripsi tambahan' && (
-                    <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded text-sm text-gray-600 dark:text-gray-300">
-                      {event.description}
-                    </div>
-                  )}
-                </div>
-              </div>
+          <div className="space-y-3">
+            {/* Header info */}
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 px-1">
+              <span>Total jadwal: {listEvents.length}</span>
+              {listEvents.length > 3 && (
+                <span className="text-blue-600 dark:text-blue-400">Scroll untuk melihat lebih banyak</span>
+              )}
             </div>
-          ))
+
+            {/* Scrollable container dengan ScrollContainer component */}
+            <ScrollContainer
+              maxHeight={listEvents.length > 3 ? '600px' : 'none'}
+              className="space-y-3"
+            >
+              {listEvents.map(event => (
+                <div
+                  key={`${event.dateStr}-${event.id}`}
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600"
+                  onClick={() => onEventClick && onEventClick(event.id)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-2">
+                        <span className={`px-2 py-1 text-xs text-white rounded-full ${getStatusColor(event.status)} inline-block w-fit shadow-sm`}>
+                          {getStatusText(event.status)}
+                        </span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                          {formatDate(event.date)}
+                        </span>
+                      </div>
+
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-3 truncate text-base">
+                        {event.team}
+                      </h3>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-300">
+                        <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-md px-2 py-1">
+                          <Clock size={14} className="text-blue-500" />
+                          <span>{event.time}</span>
+                        </div>
+
+                        {event.lapangan !== '-' && (
+                          <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-md px-2 py-1">
+                            <MapPin size={14} className="text-green-500" />
+                            <span className="truncate">{event.lapangan}</span>
+                          </div>
+                        )}
+
+                        {event.fotografer !== '-' && (
+                          <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-md px-2 py-1">
+                            <Users size={14} className="text-purple-500" />
+                            <span className="truncate">Fotografer: {event.fotografer}</span>
+                          </div>
+                        )}
+
+                        {event.editor !== '-' && (
+                          <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-md px-2 py-1">
+                            <Eye size={14} className="text-orange-500" />
+                            <span className="truncate">Editor: {event.editor}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {event.description !== 'Tidak ada deskripsi tambahan' && (
+                        <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md text-sm text-gray-700 dark:text-gray-300 border-l-4 border-blue-400">
+                          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Catatan:</span>
+                          <div className="mt-1">{event.description}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </ScrollContainer>
+          </div>
         )}
       </div>
     );
@@ -746,11 +799,11 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
         {viewMode === 'list' && renderListView()}
       </div>
 
-      {/* Popup Detail Modal - Responsive */}
+      {/* Popup Detail Modal dengan ScrollContainer - Responsive */}
       {showPopup && popupData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto popup-content">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden popup-content flex flex-col">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Detail Jadwal
               </h3>
@@ -762,14 +815,14 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
               </button>
             </div>
 
-            <div className="p-4">
+            <div className="p-4 flex-1 overflow-hidden">
               <div className="mb-4">
                 <h4 className="font-medium text-gray-900 dark:text-white mb-2 text-sm sm:text-base">
                   {formatDate(popupData.date)}
                 </h4>
               </div>
 
-              <div className="space-y-3 sm:space-y-4">
+              <ScrollContainer maxHeight="60vh" className="space-y-3 sm:space-y-4">
                 {popupData.activities.map((activity, index) => (
                   <div
                     key={activity.id || index}
@@ -820,7 +873,7 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
                     )}
                   </div>
                 ))}
-              </div>
+              </ScrollContainer>
             </div>
           </div>
         </div>

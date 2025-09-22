@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Schedule extends Model
 {
@@ -17,13 +17,19 @@ class Schedule extends Model
         'fotografer_id',
         'editor_id',
         'lapangan',
-        'status',
-        'totalJam',
         'jamFotografer',
         'jamEditor',
         'catatan',
         'linkGdriveFotografer',
-        'linkGdriveEditor',
+        'linkGdriveEditor'
+    ];
+
+    protected $casts = [
+        'tanggal' => 'date', // Simple date cast for form compatibility
+        'jamMulai' => 'string',
+        'jamSelesai' => 'string',
+        'jamFotografer' => 'decimal:1',
+        'jamEditor' => 'decimal:1'
     ];
 
     public function fotografer()
@@ -34,5 +40,26 @@ class Schedule extends Model
     public function editor()
     {
         return $this->belongsTo(Editor::class);
+    }
+
+    public function assists()
+    {
+        return $this->hasMany(ScheduleFotograferAssist::class);
+    }
+
+    /**
+     * Accessor untuk format tanggal yang readable untuk display
+     */
+    public function getFormattedTanggalAttribute()
+    {
+        return $this->tanggal->format('d M Y');
+    }
+
+    /**
+     * Accessor untuk format jam yang readable untuk display
+     */
+    public function getFormattedJamAttribute()
+    {
+        return $this->jamMulai . ' - ' . $this->jamSelesai;
     }
 }

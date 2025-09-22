@@ -15,93 +15,67 @@ const TambahSchedule = () => {
         namaEvent: "",
         fotografer_id: "",
         editor_id: "",
+        jamEditor: "",
         lapangan: "",
         catatan: "",
-        assistants: [], // Array untuk menyimpan assistant tambahan
-        additional_editors: [] // Array untuk menyimpan editor tambahan
+        assistants: [], // ✅ Fixed: Changed from "assists" to "assistants"
     });
 
-    // State untuk toggle form tambahan
     const [showAssistants, setShowAssistants] = useState(false);
-    const [showAdditionalEditors, setShowAdditionalEditors] = useState(false);
+    const [showEditor, setShowEditor] = useState(false);
 
-    // Function untuk menambah 1 jam
     const addOneHour = (timeString) => {
         if (!timeString) return "";
-        const [hours, minutes] = timeString.split(':');
+        const [hours, minutes] = timeString.split(":");
         const nextHour = (parseInt(hours) + 1) % 24;
-        return `${nextHour.toString().padStart(2, '0')}:${minutes}`;
+        return `${nextHour.toString().padStart(2, "0")}:${minutes}`;
     };
 
-    // Handler untuk assistant
+    // Assistants
     const addAssistant = () => {
-        setData(prevData => ({
+        setData((prevData) => ({
             ...prevData,
-            assistants: [...prevData.assistants, ""]
+            assistants: [ // ✅ Fixed: Changed from "assists"
+                ...prevData.assistants, // ✅ Fixed: Changed from "assists"
+                { fotografer_id: "", jamAssist: "" },
+            ],
         }));
         setShowAssistants(true);
     };
 
     const removeAssistant = (index) => {
-        setData(prevData => ({
+        setData((prevData) => ({
             ...prevData,
-            assistants: prevData.assistants.filter((_, i) => i !== index)
+            assistants: prevData.assistants.filter((_, i) => i !== index), // ✅ Fixed
         }));
-        if (data.assistants.length === 1) {
+        if (data.assistants.length === 1) { // ✅ Fixed
             setShowAssistants(false);
         }
     };
 
-    const updateAssistant = (index, value) => {
-        setData(prevData => ({
+    const updateAssistant = (index, field, value) => {
+        setData((prevData) => ({
             ...prevData,
-            assistants: prevData.assistants.map((assistant, i) =>
-                i === index ? value : assistant
-            )
+            assistants: prevData.assistants.map((assistant, i) => // ✅ Fixed
+                i === index ? { ...assistant, [field]: value } : assistant
+            ),
         }));
     };
 
-    // Handler untuk editor tambahan
-    const addAdditionalEditor = () => {
-        setData(prevData => ({
-            ...prevData,
-            additional_editors: [...prevData.additional_editors, ""]
-        }));
-        setShowAdditionalEditors(true);
+    // Editor
+    const addEditor = () => setShowEditor(true);
+    const removeEditor = () => {
+        setData((prevData) => ({ ...prevData, editor_id: "", jamEditor: "" }));
+        setShowEditor(false);
     };
 
-    const removeAdditionalEditor = (index) => {
-        setData(prevData => ({
-            ...prevData,
-            additional_editors: prevData.additional_editors.filter((_, i) => i !== index)
-        }));
-        if (data.additional_editors.length === 1) {
-            setShowAdditionalEditors(false);
-        }
-    };
-
-    const updateAdditionalEditor = (index, value) => {
-        setData(prevData => ({
-            ...prevData,
-            additional_editors: prevData.additional_editors.map((editor, i) =>
-                i === index ? value : editor
-            )
-        }));
-    };
-
-    // Handler untuk jam mulai - auto update jam selesai
+    // Jam mulai
     const handleJamMulaiChange = (time) => {
-        console.log('Jam Mulai changed to:', time);
-        console.log('Current Jam Selesai:', data.jamSelesai);
-
-        // Selalu auto-set jam selesai jadi 1 jam setelahnya
         const nextHour = addOneHour(time);
-        console.log('Next hour will be:', nextHour);
-
-        setData(prevData => ({
+        setData((prevData) => ({
             ...prevData,
             jamMulai: time,
-            jamSelesai: nextHour
+            jamSelesai: nextHour,
         }));
     };
 
@@ -110,10 +84,6 @@ const TambahSchedule = () => {
         post(route("schedule.store"), {
             onSuccess: () => reset(),
         });
-    };
-
-    const handleBack = () => {
-        window.history.back();
     };
 
     return (
@@ -136,7 +106,7 @@ const TambahSchedule = () => {
                     {/* Header */}
                     <div className="mb-8">
                         <button
-                            onClick={handleBack}
+                            onClick={() => window.history.back()}
                             className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 mb-4 transition-colors"
                         >
                             <ArrowLeft size={20} className="mr-2" />
@@ -147,7 +117,7 @@ const TambahSchedule = () => {
                         </h1>
                     </div>
 
-                    {/* Form Container */}
+                    {/* Form */}
                     <div className="max-w-2xl">
                         <form
                             onSubmit={handleSubmit}
@@ -178,7 +148,7 @@ const TambahSchedule = () => {
                                 )}
                             </div>
 
-                            {/* Jam Mulai & Jam Selesai */}
+                            {/* Jam */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -197,7 +167,6 @@ const TambahSchedule = () => {
                                         </div>
                                     )}
                                 </div>
-
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Jam Selesai
@@ -231,7 +200,7 @@ const TambahSchedule = () => {
                                         setData("namaEvent", e.target.value)
                                     }
                                     placeholder="Masukkan Nama Event"
-                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                     required
                                 />
                                 {errors.namaEvent && (
@@ -251,7 +220,7 @@ const TambahSchedule = () => {
                                     onChange={(e) =>
                                         setData("fotografer_id", e.target.value)
                                     }
-                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                     required
                                 >
                                     <option value="">Pilih Fotografer</option>
@@ -268,86 +237,183 @@ const TambahSchedule = () => {
                                 )}
                             </div>
 
-                            {/* Tombol Tambah Assist */}
+                            {/* Tombol tambah assist & editor */}
                             <div className="flex gap-4">
                                 <button
                                     type="button"
                                     onClick={addAssistant}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
                                 >
                                     <Plus size={16} />
                                     Tambah Assist
                                 </button>
-
-                                <button
-                                    type="button"
-                                    onClick={addAdditionalEditor}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
-                                >
-                                    <Plus size={16} />
-                                    Tambah Editor
-                                </button>
+                                {!showEditor && (
+                                    <button
+                                        type="button"
+                                        onClick={addEditor}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
+                                    >
+                                        <Plus size={16} />
+                                        Tambah Editor
+                                    </button>
+                                )}
                             </div>
 
-                            {/* Assistant Forms */}
-                            {showAssistants && data.assistants.map((assistant, index) => (
-                                <div key={index} className="relative">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Assistant {index + 1}
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={assistant}
-                                            onChange={(e) => updateAssistant(index, e.target.value)}
-                                            className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        >
-                                            <option value="">Pilih Assistant</option>
-                                            {fotografers.map((f) => (
-                                                <option key={f.id} value={f.id}>
-                                                    {f.nama}
-                                                </option>
-                                            ))}
-                                        </select>
+                            {/* Editor Form */}
+                            {showEditor && (
+                                <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Editor
+                                        </h4>
                                         <button
                                             type="button"
-                                            onClick={() => removeAssistant(index)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                            onClick={removeEditor}
+                                            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
                                         >
                                             <X size={18} />
                                         </button>
                                     </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Pilih Editor
+                                            </label>
+                                            <select
+                                                value={data.editor_id}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "editor_id",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                            >
+                                                <option value="">
+                                                    Pilih Editor
+                                                </option>
+                                                {editors.map((e) => (
+                                                    <option
+                                                        key={e.id}
+                                                        value={e.id}
+                                                    >
+                                                        {e.nama}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {errors.editor_id && (
+                                                <div className="text-red-500 dark:text-red-400 text-sm mt-1">
+                                                    {errors.editor_id}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Jam Editor
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.5"
+                                                min="0"
+                                                value={data.jamEditor}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "jamEditor",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="0.0"
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                            />
+                                            {errors.jamEditor && (
+                                                <div className="text-red-500 dark:text-red-400 text-sm mt-1">
+                                                    {errors.jamEditor}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            ))}
+                            )}
 
-                            {/* Additional Editor Forms */}
-                            {showAdditionalEditors && data.additional_editors.map((editor, index) => (
-                                <div key={index} className="relative">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Editor Tambahan {index + 1}
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={editor}
-                                            onChange={(e) => updateAdditionalEditor(index, e.target.value)}
-                                            className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        >
-                                            <option value="">Pilih Editor</option>
-                                            {editors.map((e) => (
-                                                <option key={e.id} value={e.id}>
-                                                    {e.nama}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeAdditionalEditor(index)}
-                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                        >
-                                            <X size={18} />
-                                        </button>
+                            {/* Assistant Forms */}
+                            {showAssistants &&
+                                data.assistants.map((assistant, index) => ( // ✅ Fixed: Changed from data.assists
+                                    <div
+                                        key={index}
+                                        className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300"
+                                    >
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Assistant {index + 1}
+                                            </h4>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    removeAssistant(index)
+                                                }
+                                                className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Pilih Assistant
+                                                </label>
+                                                <select
+                                                    value={
+                                                        assistant.fotografer_id ||
+                                                        ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        updateAssistant(
+                                                            index,
+                                                            "fotografer_id",
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                                >
+                                                    <option value="">
+                                                        Pilih Assistant
+                                                    </option>
+                                                    {fotografers.map((f) => (
+                                                        <option
+                                                            key={f.id}
+                                                            value={f.id}
+                                                        >
+                                                            {f.nama}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Jam Assist
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    step="0.5"
+                                                    min="0"
+                                                    value={
+                                                        assistant.jamAssist ||
+                                                        ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        updateAssistant(
+                                                            index,
+                                                            "jamAssist",
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="0.0"
+                                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
 
                             {/* Lapangan */}
                             <div>
@@ -361,7 +427,7 @@ const TambahSchedule = () => {
                                         setData("lapangan", e.target.value)
                                     }
                                     placeholder="Masukkan Nama Lapangan"
-                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                     required
                                 />
                                 {errors.lapangan && (
@@ -382,7 +448,7 @@ const TambahSchedule = () => {
                                         setData("catatan", e.target.value)
                                     }
                                     placeholder="Tambahkan catatan jika ada..."
-                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                     rows="3"
                                 />
                                 {errors.catatan && (
@@ -392,12 +458,12 @@ const TambahSchedule = () => {
                                 )}
                             </div>
 
-                            {/* Submit Button */}
+                            {/* Submit */}
                             <div className="flex justify-end pt-4">
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="px-8 py-3 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                                    className="px-8 py-3 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {processing ? "Saving..." : "Save"}
                                 </button>

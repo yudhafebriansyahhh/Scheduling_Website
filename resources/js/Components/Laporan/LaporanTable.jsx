@@ -39,11 +39,9 @@ const LaporanTable = ({
         case 'completed':
           return 'Selesai';
         case 'pending':
-          return 'Pending';
+          return 'Menunggu';
         case 'in_progress':
-          return 'Proses';
-        case 'cancelled':
-          return 'Dibatalkan';
+          return 'Berlangsung';
         default:
           return status;
       }
@@ -207,7 +205,7 @@ const LaporanTable = ({
                           {item.fotografer?.nama || '-'}
                         </div>
                         <div className="text-purple-600 dark:text-purple-400 text-xs">
-                          {formatHours(item.jamFotografer)}h
+                          {formatHours(item.jamFotografer)} jam
                         </div>
                       </div>
                     </td>
@@ -219,7 +217,7 @@ const LaporanTable = ({
                           {item.editor?.nama || '-'}
                         </div>
                         <div className="text-orange-600 dark:text-orange-400 text-xs">
-                          {formatHours(item.jamEditor)}h
+                          {formatHours(item.jamEditor)} jam
                         </div>
                       </div>
                     </td>

@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('schedule_id')->constrained()->onDelete('cascade');
             $table->foreignId('fotografer_id')->constrained()->onDelete('cascade');
+            $table->decimal('jamAssist', 4, 1);
             $table->timestamps();
         });
     }

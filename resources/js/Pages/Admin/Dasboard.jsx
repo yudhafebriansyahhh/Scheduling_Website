@@ -44,33 +44,40 @@ export default function Dashboard({ stats, events, schedules }) {
 
                 {/* Konten Dashboard */}
                 <div className="flex-1 p-6 space-y-6">
-                    {/* Statistik - Remove the extra grid wrapper */}
+                    {/* Statistik */}
                     <StatsCards stats={stats} />
 
-                    {/* Kalender + Sidebar Jadwal */}
+                    {/* Kalender + Sidebar Jadwal dengan tinggi yang sama */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Calendar dengan tinggi yang ditentukan */}
                         <div className="lg:col-span-2">
-                            <Calendar
-                                schedules={schedules}
-                                events={events}
-                                onEventClick={(eventId) => {
-                                    const found = schedules.find(
-                                        (s) => s.id === parseInt(eventId)
-                                    );
-                                    setSelectedSchedule(found || null);
-                                }}
-                                onDateSelect={(date) =>
-                                    console.log("Date selected:", date)
-                                }
-                            />
+                            <div className="h-full">
+                                <Calendar
+                                    schedules={schedules}
+                                    events={events}
+                                    onEventClick={(eventId) => {
+                                        const found = schedules.find(
+                                            (s) => s.id === parseInt(eventId)
+                                        );
+                                        setSelectedSchedule(found || null);
+                                    }}
+                                    onDateSelect={(date) =>
+                                        console.log("Date selected:", date)
+                                    }
+                                />
+                            </div>
                         </div>
+
+                        {/* ScheduleSidebar dengan tinggi yang sama */}
                         <div className="lg:col-span-1">
-                            <ScheduleSidebar
-                                schedules={schedules}
-                                onScheduleClick={(schedule) =>
-                                    setSelectedSchedule(schedule)
-                                }
-                            />
+                            <div className="h-full">
+                                <ScheduleSidebar
+                                    schedules={schedules}
+                                    onScheduleClick={(schedule) =>
+                                        setSelectedSchedule(schedule)
+                                    }
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -80,7 +87,6 @@ export default function Dashboard({ stats, events, schedules }) {
                             <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
                                 Jadwal
                             </h2>
-                            
                         </div>
                         <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 transition-colors duration-300">
                             <ScheduleTable schedules={schedules} />

@@ -18,17 +18,15 @@ return new class extends Migration
             $table->time('jamSelesai');
             $table->string('namaEvent');
             $table->foreignId('fotografer_id')->constrained('fotografers')->onDelete('cascade');
-            $table->foreignId('editor_id')->constrained('editors')->onDelete('cascade')->nullable();
+            $table->foreignId('editor_id')->nullable()->constrained('editors')->onDelete('cascade'); // ✅ Tambah nullable()
             $table->string('lapangan');
-            $table->enum('status', ['completed', 'in_progress', 'pending'])->default('pending');
-            $table->decimal('jamFotografer', 4, 1);
-            $table->decimal('jamEditor', 4, 1);
+            $table->decimal('jamFotografer', 4, 1)->default(0);
+            $table->decimal('jamEditor', 4, 1)->nullable();
             $table->text('catatan')->nullable();
             $table->text('linkGdriveFotografer')->nullable();
             $table->text('linkGdriveEditor')->nullable();
             $table->timestamps();
         });
-
     }
 
     /**
