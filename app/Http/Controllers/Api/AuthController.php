@@ -40,30 +40,53 @@ class AuthController extends Controller
     }
 
     public function register(Request $request)
-    {
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|lowercase|email|max:255|unique:users,email',
-            'password' => 'required|string|confirmed|min:6',
-            'role'     => 'required|string|max:255',
-            'no_hp'    => 'required|string|max:225',
+{
+    $request->validate([
+        'name'     => 'required|string|max:255',
+        'email'    => 'required|string|lowercase|email|max:255|unique:users,email',
+        'password' => 'required|string|confirmed|min:6',
+        'role'     => 'required|string|max:255',
+        'no_hp'    => 'required|string|max:225',
+    ]);
+
+    // 1. Simpan user
+    $user = User::create([
+        'name'     => $request->name,
+        'email'    => $request->email,
+        'password' => Hash::make($request->password),
+        'role'     => $request->role,
+        'no_hp'    => $request->no_hp,
+    ]);
+
+    // 2. Isi tabel fotografers atau editors otomatis
+    if ($request->role === 'fotografer') {
+        \App\Models\Fotografer::create([
+            'user_id' => $user->id,
+            'nama'    => $request->name,
+            'alamat'  => $request->alamat ?? null,
+            'no_hp'   => $request->no_hp,
+            'email'   => $request->email,
+            'photo'   => null, // default kosong
         ]);
-
-        $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'role'     => $request->role,
-            'no_hp'    => $request->no_hp,
+    } elseif ($request->role === 'editor') {
+        \App\Models\Editor::create([
+            'user_id' => $user->id,
+            'nama'    => $request->name,
+            'alamat'  => $request->alamat ?? null,
+            'no_hp'   => $request->no_hp,
+            'email'   => $request->email,
+            'photo'   => null, // default kosong
         ]);
-
-        // Generate token Sanctum
-        $token = $user->createToken('android_token')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Registrasi berhasil',
-            'user'    => $user,
-            'token'   => $token,
-        ], 201);
     }
+
+    // 3. Generate token Sanctum
+    $token = $user->createToken('android_token')->plainTextToken;
+
+    return response()->json([
+        'message' => 'Registrasi berhasil',
+        'user'    => $user,
+        'token'   => $token,
+    ], 201);
+}
+
 }

@@ -15,7 +15,9 @@ class ScheduleController extends Controller
 {
     $user = auth()->user(); // user yang sedang login
 
-    $query = Schedule::select('id','tanggal', 'jamMulai', 'jamSelesai', 'namaEvent', 'fotografer_id', 'editor_id');
+    $query = Schedule::select('id','tanggal', 'jamMulai', 'jamSelesai', 'namaEvent', 'fotografer_id', 'editor_id','catatan',
+        'linkGdriveFotografer',
+        'linkGdriveEditor');
 
     if ($user->role === 'fotografer') {
         $fotografer = \App\Models\Fotografer::where('user_id', $user->id)->first();
