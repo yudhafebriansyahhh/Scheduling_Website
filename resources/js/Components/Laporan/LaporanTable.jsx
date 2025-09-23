@@ -150,16 +150,20 @@ const LaporanTable = ({
     );
   };
 
-  // Table headers based on filterRole
+  // Table headers based on filterRole - DIPERBAIKI
   const getTableHeaders = () => {
     const baseHeaders = ['No', 'Info Event', 'Waktu'];
 
     if (filterRole === 'fotografer') {
       return [...baseHeaders, 'Fotografer', 'Status', 'Aksi'];
     } else if (filterRole === 'editor') {
-      return [...baseHeaders, 'Editor', 'Status', 'Aksi'];
+      // PERUBAHAN: Header untuk filter editor
+      return [...baseHeaders, 'Editor Utama', 'Assistant', 'Status', 'Aksi'];
     } else if (filterRole === 'assist') {
       return [...baseHeaders, 'Fotografer Utama', 'Assistant', 'Status', 'Aksi'];
+    } else if (filterRole === 'editorAssist') {
+      // PERUBAHAN: Header untuk filter editorAssist
+      return [...baseHeaders, 'Editor Utama', 'Assistant', 'Status', 'Aksi'];
     } else {
       // Role 'all'
       return [...baseHeaders, 'Fotografer', 'Editor', 'Status', 'Aksi'];
@@ -202,7 +206,7 @@ const LaporanTable = ({
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedData.map((item, index) => (
                 <tr
-                  key={`${item.id}-${item.isAssistRow ? `assist-${item.currentAssist?.id}` : 'main'}-${index}`}
+                  key={`${item.id}-${item.isAssistRow ? `assist-${item.currentAssist?.id}` : item.isEditorAssistRow ? `editor-assist-${item.currentEditorAssist?.id}` : 'main'}-${index}`}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   {/* No */}
@@ -244,7 +248,7 @@ const LaporanTable = ({
                   )}
 
                   {/* Editor - for editor role or all */}
-                  {(filterRole === 'editor' || filterRole === 'all') && (
+                  {(filterRole === 'all') && (
                     <td className="px-6 py-4">
                       {item.editor?.nama ? (
                         <div className="text-sm">
@@ -263,6 +267,31 @@ const LaporanTable = ({
                     </td>
                   )}
 
+                  {/* PERUBAHAN: Editor Utama - for editor role */}
+                  {filterRole === 'editor' && (
+                    <td className="px-6 py-4">
+                      <div className="text-sm">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                          {item.mainEditor?.nama || item.editor?.nama || '-'}
+                        </div>
+                      </div>
+                    </td>
+                  )}
+
+                  {/* PERUBAHAN: Assistant Editor - for editor role */}
+                  {filterRole === 'editor' && (
+                    <td className="px-6 py-4">
+                      <div className="text-sm">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                          {item.assistEditor?.nama || '-'}
+                        </div>
+                        <div className="text-purple-600 dark:text-purple-400 text-xs">
+                          {formatHours(item.jamAssist)} jam
+                        </div>
+                      </div>
+                    </td>
+                  )}
+
                   {/* Fotografer Utama - for assist role */}
                   {filterRole === 'assist' && (
                     <td className="px-6 py-4">
@@ -274,7 +303,7 @@ const LaporanTable = ({
                     </td>
                   )}
 
-                  {/* Assistant - for assist role */}
+                  {/* Assistant Fotografer - for assist role */}
                   {filterRole === 'assist' && (
                     <td className="px-6 py-4">
                       <div className="text-sm">
@@ -282,6 +311,31 @@ const LaporanTable = ({
                           {item.assistFotografer?.nama || '-'}
                         </div>
                         <div className="text-blue-600 dark:text-blue-400 text-xs">
+                          {formatHours(item.jamAssist)} jam
+                        </div>
+                      </div>
+                    </td>
+                  )}
+
+                  {/* PERUBAHAN: Editor Utama - for editorAssist role */}
+                  {filterRole === 'editorAssist' && (
+                    <td className="px-6 py-4">
+                      <div className="text-sm">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                          {item.mainEditor?.nama || item.editor?.nama || '-'}
+                        </div>
+                      </div>
+                    </td>
+                  )}
+
+                  {/* PERUBAHAN: Assistant Editor - for editorAssist role */}
+                  {filterRole === 'editorAssist' && (
+                    <td className="px-6 py-4">
+                      <div className="text-sm">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                          {item.assistEditor?.nama || '-'}
+                        </div>
+                        <div className="text-purple-600 dark:text-purple-400 text-xs">
                           {formatHours(item.jamAssist)} jam
                         </div>
                       </div>
@@ -325,7 +379,7 @@ const LaporanTable = ({
           </table>
         </div>
 
-        {/* Mobile Cards */}
+        {/* Mobile Cards - PERUBAHAN JUGA DI SINI */}
         <div className="lg:hidden space-y-4 p-4">
           {paginatedData.map((item, index) => (
             <div key={`${item.id}-mobile-${index}`} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
@@ -358,7 +412,7 @@ const LaporanTable = ({
                 </div>
               )}
 
-              {(filterRole === 'all' || filterRole === 'editor') && item.editor && (
+              {(filterRole === 'all') && item.editor && (
                 <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Editor:</span>
                   <div className="text-right">
@@ -370,6 +424,33 @@ const LaporanTable = ({
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* PERUBAHAN: Mobile view untuk editor filter */}
+              {filterRole === 'editor' && (
+                <>
+                  <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Editor Utama:</span>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {item.mainEditor?.nama || item.editor?.nama || '-'}
+                      </div>
+                    </div>
+                  </div>
+                  {item.assistEditor?.nama && (
+                    <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Assistant Editor:</span>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {item.assistEditor.nama}
+                        </div>
+                        <div className="text-xs text-purple-600 dark:text-purple-400">
+                          {formatHours(item.jamAssist)}h
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {filterRole === 'assist' && (
@@ -392,6 +473,33 @@ const LaporanTable = ({
                           {item.assistFotografer.nama}
                         </div>
                         <div className="text-xs text-blue-600 dark:text-blue-400">
+                          {formatHours(item.jamAssist)}h
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* PERUBAHAN: Mobile view untuk editorAssist filter */}
+              {filterRole === 'editorAssist' && (
+                <>
+                  <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Editor Utama:</span>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {item.mainEditor?.nama || item.editor?.nama || '-'}
+                      </div>
+                    </div>
+                  </div>
+                  {item.assistEditor?.nama && (
+                    <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Assistant Editor:</span>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {item.assistEditor.nama}
+                        </div>
+                        <div className="text-xs text-purple-600 dark:text-purple-400">
                           {formatHours(item.jamAssist)}h
                         </div>
                       </div>

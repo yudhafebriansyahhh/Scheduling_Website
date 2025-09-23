@@ -8,17 +8,11 @@ import CustomTimeInput from "../../../Components/CustomTimeInput";
 const EditSchedule = () => {
     const { schedule, fotografers, editors } = usePage().props;
 
-    // Helper untuk format jam dari DB (HH:mm:ss -> HH:mm)
-    const formatTime = (time) => {
-        if (!time) return "";
-        return time.length === 8 ? time.slice(0, 5) : time;
-    };
-
-    // Prefill data dari schedule
+    // Prefill data dari schedule - FIXED field names dan format
     const { data, setData, put, processing, errors } = useForm({
         tanggal: schedule.tanggal || "",
-        jamMulai: formatTime(schedule.jamMulai) || "",
-        jamSelesai: formatTime(schedule.jamSelesai) || "",
+        jamMulai: schedule.jamMulai ? schedule.jamMulai.substring(0, 5) : "",
+        jamSelesai: schedule.jamSelesai ? schedule.jamSelesai.substring(0, 5) : "",
         namaEvent: schedule.namaEvent || "",
         fotografer_id: schedule.fotografer_id || "",
         editor_id: schedule.editor_id || "",
@@ -28,7 +22,13 @@ const EditSchedule = () => {
         assistants: schedule.assistants
             ? schedule.assistants.map((assist) => ({
                   fotografer_id: assist.fotografer_id,
-                  jamAssist: formatTime(assist.jamAssist),
+                  jamAssist: assist.jamAssist,
+              }))
+            : [],
+        assistEditors: schedule.assistEditors
+            ? schedule.assistEditors.map((assist) => ({
+                  editor_id: assist.editor_id,
+                  jamAssist: assist.jamAssist,
               }))
             : [],
     });
@@ -84,16 +84,43 @@ const EditSchedule = () => {
         setShowEditor(false);
     };
 
-    // Jam mulai - FIXED: Only auto-set jamSelesai if it's empty or this is a new input
+    // Assist Editor
+    const addAssistEditor = () => {
+        setData((prev) => ({
+            ...prev,
+            assistEditors: [
+                ...prev.assistEditors,
+                { editor_id: "", jamAssist: "" },
+            ],
+        }));
+    };
+
+    const removeAssistEditor = (index) => {
+        setData((prev) => ({
+            ...prev,
+            assistEditors: prev.assistEditors.filter((_, i) => i !== index),
+        }));
+    };
+
+    const updateAssistEditor = (index, field, value) => {
+        setData((prev) => ({
+            ...prev,
+            assistEditors: prev.assistEditors.map((item, i) =>
+                i === index ? { ...item, [field]: value } : item
+            ),
+        }));
+    };
+
+    // Jam mulai - FIXED: Only auto-set jamSelesai if it's empty
     const handleJamMulaiChange = (time) => {
         setData((prevData) => {
-            // Only auto-set jamSelesai if it's currently empty or if user is creating new schedule
-            const shouldAutoSetEndTime = !prevData.jamSelesai || isNewSchedule;
+            // Only auto-set jamSelesai if it's currently empty
+            const shouldAutoSetEndTime = !prevData.jamSelesai;
 
             return {
                 ...prevData,
                 jamMulai: time,
-                // Only update jamSelesai if it's empty or this is a new schedule
+                // Only update jamSelesai if it's empty
                 jamSelesai: shouldAutoSetEndTime ? addOneHour(time) : prevData.jamSelesai,
             };
         });
@@ -111,7 +138,17 @@ const EditSchedule = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        put(route("schedule.update", schedule.id));
+
+        // Langsung kirim data tanpa format tambahan karena input HTML sudah memberikan format yang benar
+        put(route("schedule.update", schedule.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                // Optional: tampilkan notifikasi sukses atau redirect
+            },
+            onError: (errors) => {
+                console.log('Validation errors:', errors);
+            }
+        });
     };
 
     const handleBack = () => {
@@ -147,7 +184,9 @@ const EditSchedule = () => {
                         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                             Edit Schedule
                         </h1>
-
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            Edit informasi schedule. Jam dan tanggal akan tetap tersimpan kecuali Anda mengubahnya secara manual.
+                        </p>
                     </div>
 
                     {/* Form Container */}
@@ -160,15 +199,16 @@ const EditSchedule = () => {
                                 Information
                             </h2>
 
-                            {/* Tanggal */}
+                            {/* Tanggal - Gunakan input HTML biasa untuk edit */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Tanggal
                                 </label>
-                                <CustomDateInput
+                                <input
+                                    type="date"
                                     value={data.tanggal}
-                                    onChange={handleTanggalChange}
-                                    placeholder="Pilih tanggal event"
+                                    onChange={(e) => handleTanggalChange(e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                     required
                                     disabled={processing}
                                 />
@@ -179,16 +219,17 @@ const EditSchedule = () => {
                                 )}
                             </div>
 
-                            {/* Jam - FIXED: Independent controls */}
+                            {/* Jam - FIXED: Gunakan input HTML biasa untuk edit */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Jam Mulai
                                     </label>
-                                    <CustomTimeInput
+                                    <input
+                                        type="time"
                                         value={data.jamMulai}
-                                        onChange={handleJamMulaiChange}
-                                        placeholder="Pilih jam mulai"
+                                        onChange={(e) => handleJamMulaiChange(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                         required
                                         disabled={processing}
                                     />
@@ -202,10 +243,11 @@ const EditSchedule = () => {
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Jam Selesai
                                     </label>
-                                    <CustomTimeInput
+                                    <input
+                                        type="time"
                                         value={data.jamSelesai}
-                                        onChange={handleJamSelesaiChange}
-                                        placeholder="Pilih jam selesai"
+                                        onChange={(e) => handleJamSelesaiChange(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                         required
                                         disabled={processing}
                                     />
@@ -214,6 +256,9 @@ const EditSchedule = () => {
                                             {errors.jamSelesai}
                                         </div>
                                     )}
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Jam selesai akan tetap tersimpan kecuali diubah manual
+                                    </div>
                                 </div>
                             </div>
 
@@ -264,15 +309,18 @@ const EditSchedule = () => {
 
                             {/* Tombol tambah assist & editor */}
                             <div className="flex gap-4">
+                                {/* Assist Fotografer */}
                                 <button
                                     type="button"
                                     onClick={addAssistant}
                                     className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
                                 >
                                     <Plus size={16} />
-                                    Tambah Assist
+                                    Tambah Assist Fotografer
                                 </button>
-                                {!showEditor && (
+
+                                {/* Editor / Assist Editor */}
+                                {!showEditor ? (
                                     <button
                                         type="button"
                                         onClick={addEditor}
@@ -280,6 +328,15 @@ const EditSchedule = () => {
                                     >
                                         <Plus size={16} />
                                         Tambah Editor
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={addAssistEditor}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
+                                    >
+                                        <Plus size={16} />
+                                        Tambah Assist Editor
                                     </button>
                                 )}
                             </div>
@@ -345,7 +402,80 @@ const EditSchedule = () => {
                                 </div>
                             )}
 
-                            {/* Assistant Forms */}
+                            {/* Editor Assist Forms */}
+                            {data.assistEditors.map((assist, index) => (
+                                <div
+                                    key={index}
+                                    className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300"
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Assist Editor {index + 1}
+                                        </h4>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                removeAssistEditor(index)
+                                            }
+                                            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Pilih Assist Editor
+                                            </label>
+                                            <select
+                                                value={assist.editor_id}
+                                                onChange={(e) =>
+                                                    updateAssistEditor(
+                                                        index,
+                                                        "editor_id",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                            >
+                                                <option value="">
+                                                    Pilih Assist Editor
+                                                </option>
+                                                {editors.map((ed) => (
+                                                    <option
+                                                        key={ed.id}
+                                                        value={ed.id}
+                                                    >
+                                                        {ed.nama}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Jam Assist
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.5"
+                                                min="0"
+                                                value={assist.jamAssist}
+                                                onChange={(e) =>
+                                                    updateAssistEditor(
+                                                        index,
+                                                        "jamAssist",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="0.0"
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {/* Assistant Fotografer Forms */}
                             {showAssistants &&
                                 data.assistants.map((assistant, index) => (
                                     <div
@@ -354,7 +484,7 @@ const EditSchedule = () => {
                                     >
                                         <div className="flex items-center justify-between mb-4">
                                             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                Assistant {index + 1}
+                                                Assist Fotografer {index + 1}
                                             </h4>
                                             <button
                                                 type="button"

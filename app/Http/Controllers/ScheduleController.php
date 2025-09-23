@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Editor;
 use App\Models\Fotografer;
 use App\Models\Schedule;
+use App\Models\ScheduleEditorAssist;
 use App\Models\ScheduleFotograferAssist;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ class ScheduleController extends Controller
 {
     public function index()
     {
-        $schedules = Schedule::with(['fotografer', 'editor', 'assists.fotografer'])
+        $schedules = Schedule::with(['fotografer', 'editor', 'assists.fotografer', 'editorAssists.editor'])
             ->latest('tanggal')
             ->latest('jamMulai')
             ->get()
@@ -47,9 +48,28 @@ class ScheduleController extends Controller
             }
         }
 
+        // Transform data untuk editor assists - buat row terpisah untuk setiap editor assist
+        $editorAssistSchedules = collect();
+
+        foreach ($schedules as $schedule) {
+            if ($schedule->editorAssists && $schedule->editorAssists->count() > 0) {
+                foreach ($schedule->editorAssists as $assist) {
+                    $assistSchedule = $schedule->replicate();
+                    $assistSchedule->id = $schedule->id;
+                    $assistSchedule->currentEditorAssist = $assist;
+                    $assistSchedule->jamAssist = $assist->jamAssist;
+                    $assistSchedule->assistEditor = $assist->editor;
+                    $assistSchedule->isEditorAssistRow = true;
+                    $assistSchedule->mainEditor = $schedule->editor; // PENTING: Editor utama
+                    $editorAssistSchedules->push($assistSchedule);
+                }
+            }
+        }
+
         return Inertia::render('Admin/Laporan', [
             'schedules' => $schedules,
-            'assistSchedules' => $assistSchedules
+            'assistSchedules' => $assistSchedules,
+            'editorAssistSchedules' => $editorAssistSchedules
         ]);
     }
 
@@ -81,6 +101,19 @@ class ScheduleController extends Controller
                 }
             }
 
+            // Simpan assist editor
+            if (!empty($validated['assistEditors'])) {
+                foreach ($validated['assistEditors'] as $assist) {
+                    if (!empty($assist['editor_id']) && !empty($assist['jamAssist'])) {
+                        ScheduleEditorAssist::create([
+                            'schedule_id' => $schedule->id,
+                            'editor_id' => $assist['editor_id'],
+                            'jamAssist' => $assist['jamAssist']
+                        ]);
+                    }
+                }
+            }
+
             return redirect()->route('schedule.index')->with('success', 'Schedule berhasil ditambahkan.');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()])->withInput();
@@ -89,7 +122,7 @@ class ScheduleController extends Controller
 
     public function show(Schedule $schedule)
     {
-        $schedule->load(['fotografer', 'editor', 'assists.fotografer']);
+        $schedule->load(['fotografer', 'editor', 'assists.fotografer', 'editorAssists.editor']);
         $schedule->status = $this->determineStatus(
             $schedule->tanggal->format('Y-m-d'),
             $schedule->jamMulai,
@@ -103,7 +136,9 @@ class ScheduleController extends Controller
 
     public function edit(Schedule $schedule)
     {
-        $schedule->load(['assists.fotografer']);
+        // Load semua relasi yang diperlukan
+        $schedule->load(['assists.fotografer', 'editorAssists.editor']);
+
         $status = $this->determineStatus(
             $schedule->tanggal->format('Y-m-d'),
             $schedule->jamMulai,
@@ -121,14 +156,20 @@ class ScheduleController extends Controller
             'jamEditor' => $schedule->jamEditor,
             'lapangan' => $schedule->lapangan,
             'catatan' => $schedule->catatan,
-            'status' => $status, // dihitung realtime
+            'status' => $status,
             'jamFotografer' => $schedule->jamFotografer,
             'assistants' => $schedule->assists->map(function ($assist) {
                 return [
                     'fotografer_id' => $assist->fotografer_id,
                     'jamAssist' => $assist->jamAssist,
                 ];
-            })->toArray()
+            })->toArray(),
+            'assistEditors' => $schedule->editorAssists->map(function ($assist) {
+                return [
+                    'editor_id' => $assist->editor_id,
+                    'jamAssist' => $assist->jamAssist,
+                ];
+            })->toArray(),
         ];
 
         return Inertia::render('Admin/Schedule/EditSchedule', [
@@ -146,7 +187,7 @@ class ScheduleController extends Controller
         try {
             $schedule->update($this->prepareScheduleData($validated, $schedule));
 
-            // Reset assistants
+            // Reset fotografer assist
             $schedule->assists()->delete();
             if (!empty($validated['assistants'])) {
                 foreach ($validated['assistants'] as $assistant) {
@@ -155,6 +196,20 @@ class ScheduleController extends Controller
                             'schedule_id' => $schedule->id,
                             'fotografer_id' => $assistant['fotografer_id'],
                             'jamAssist' => $assistant['jamAssist']
+                        ]);
+                    }
+                }
+            }
+
+            // Reset editor assist
+            $schedule->editorAssists()->delete();
+            if (!empty($validated['assistEditors'])) {
+                foreach ($validated['assistEditors'] as $assist) {
+                    if (!empty($assist['editor_id']) && !empty($assist['jamAssist'])) {
+                        \App\Models\ScheduleEditorAssist::create([
+                            'schedule_id' => $schedule->id,
+                            'editor_id' => $assist['editor_id'],
+                            'jamAssist' => $assist['jamAssist']
                         ]);
                     }
                 }
@@ -189,6 +244,9 @@ class ScheduleController extends Controller
             'assistants' => 'nullable|array',
             'assistants.*.fotografer_id' => 'nullable|exists:fotografers,id',
             'assistants.*.jamAssist' => 'nullable|numeric|min:0',
+            'assistEditors' => 'nullable|array',
+            'assistEditors.*.editor_id' => 'nullable|exists:editors,id',
+            'assistEditors.*.jamAssist' => 'nullable|numeric|min:0',
         ]);
     }
 
@@ -200,7 +258,7 @@ class ScheduleController extends Controller
             $durasiJam = $this->calculateDuration($validated['jamMulai'], $validated['jamSelesai']);
         }
 
-        $scheduleData = collect($validated)->except(['assistants'])->toArray();
+        $scheduleData = collect($validated)->except(['assistants', 'assistEditors'])->toArray();
 
         return array_merge($scheduleData, [
             'jamFotografer' => $durasiJam,
@@ -230,7 +288,7 @@ class ScheduleController extends Controller
         }
 
         $scheduleStart = Carbon::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jamMulai}", 'Asia/Jakarta');
-        $scheduleEnd   = Carbon::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jamSelesai}", 'Asia/Jakarta');
+        $scheduleEnd = Carbon::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jamSelesai}", 'Asia/Jakarta');
 
         if ($scheduleEnd->lte($scheduleStart)) {
             $scheduleEnd->addDay();
