@@ -27,7 +27,30 @@ class ScheduleController extends Controller
                 return $schedule;
             });
 
-        return Inertia::render('Admin/Laporan', compact('schedules'));
+        // Transform data untuk role "assist" - buat row terpisah untuk setiap assist
+        // Assist adalah fotografer yang membantu fotografer utama
+        $assistSchedules = collect();
+
+        foreach ($schedules as $schedule) {
+            if ($schedule->assists && $schedule->assists->count() > 0) {
+                // Untuk setiap assist, buat row terpisah
+                foreach ($schedule->assists as $assist) {
+                    $assistSchedule = $schedule->replicate();
+                    $assistSchedule->id = $schedule->id; // Keep original ID
+                    $assistSchedule->currentAssist = $assist; // Add current assist info
+                    $assistSchedule->jamAssist = $assist->jamAssist;
+                    $assistSchedule->assistFotografer = $assist->fotografer; // Fotografer yang jadi assist
+                    $assistSchedule->isAssistRow = true; // Flag untuk membedakan
+                    $assistSchedule->mainFotografer = $schedule->fotografer; // Fotografer utama
+                    $assistSchedules->push($assistSchedule);
+                }
+            }
+        }
+
+        return Inertia::render('Admin/Laporan', [
+            'schedules' => $schedules,
+            'assistSchedules' => $assistSchedules
+        ]);
     }
 
     public function create()
@@ -198,29 +221,27 @@ class ScheduleController extends Controller
     }
 
     private function determineStatus($tanggal, string $jamMulai, string $jamSelesai): string
-{
-    $now = now('Asia/Jakarta');
+    {
+        $now = now('Asia/Jakarta');
 
-    // pastikan tanggal jadi format Y-m-d string
-    if ($tanggal instanceof Carbon) {
-        $tanggal = $tanggal->format('Y-m-d');
+        // pastikan tanggal jadi format Y-m-d string
+        if ($tanggal instanceof Carbon) {
+            $tanggal = $tanggal->format('Y-m-d');
+        }
+
+        $scheduleStart = Carbon::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jamMulai}", 'Asia/Jakarta');
+        $scheduleEnd   = Carbon::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jamSelesai}", 'Asia/Jakarta');
+
+        if ($scheduleEnd->lte($scheduleStart)) {
+            $scheduleEnd->addDay();
+        }
+
+        if ($now->lt($scheduleStart)) {
+            return 'pending';
+        } elseif ($now->between($scheduleStart, $scheduleEnd)) {
+            return 'in_progress';
+        } else {
+            return 'completed';
+        }
     }
-
-    $scheduleStart = Carbon::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jamMulai}", 'Asia/Jakarta');
-    $scheduleEnd   = Carbon::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jamSelesai}", 'Asia/Jakarta');
-
-
-    if ($scheduleEnd->lte($scheduleStart)) {
-        $scheduleEnd->addDay();
-    }
-
-    if ($now->lt($scheduleStart)) {
-        return 'pending';
-    } elseif ($now->between($scheduleStart, $scheduleEnd)) {
-        return 'in_progress';
-    } else {
-        return 'completed';
-    }
-}
-
 }

@@ -15,6 +15,7 @@ import { exportToCSV, exportToPDF } from "../../utils/laporanExportUtils";
 // Custom hook untuk filtering dan summary
 const useFilteredData = (
     data,
+    assistData,
     searchTerm,
     filterStatus,
     filterRole,
@@ -74,16 +75,26 @@ const useFilteredData = (
     };
 
     const filteredData = useMemo(() => {
-        return data.filter((item) => {
+        let sourceData = data;
+
+        // Jika filter role adalah "assist", gunakan assistData
+        if (filterRole === "assist") {
+            sourceData = assistData || [];
+        } else if (filterRole === "editor") {
+            // Filter hanya schedule yang memiliki editor (editor_id tidak null)
+            sourceData = data.filter(item => item.editor_id !== null && item.editor !== null);
+        }
+
+        return sourceData.filter((item) => {
             // Dynamic search based on filterRole
             let matchSearch = false;
 
-            // Always search in these fields
+            // Basic search (selalu ada)
             const basicSearch =
                 item.namaEvent
-                    .toLowerCase()
+                    ?.toLowerCase()
                     .includes(searchTerm.toLowerCase()) ||
-                item.lapangan.toLowerCase().includes(searchTerm.toLowerCase());
+                item.lapangan?.toLowerCase().includes(searchTerm.toLowerCase());
 
             // Role-specific search
             if (filterRole === "all") {
@@ -105,6 +116,12 @@ const useFilteredData = (
                 matchSearch =
                     basicSearch ||
                     item.editor?.nama
+                        ?.toLowerCase()
+                        .includes(searchTerm.toLowerCase());
+            } else if (filterRole === "assist") {
+                matchSearch =
+                    basicSearch ||
+                    item.assistFotografer?.nama
                         ?.toLowerCase()
                         .includes(searchTerm.toLowerCase());
             } else {
@@ -135,6 +152,7 @@ const useFilteredData = (
         });
     }, [
         data,
+        assistData,
         searchTerm,
         filterStatus,
         filterRole,
@@ -143,13 +161,25 @@ const useFilteredData = (
     ]);
 
     const summary = useMemo(() => {
-        const totalMinutesFotografer = filteredData.reduce((sum, item) => {
-            return sum + timeToMinutes(item.jamFotografer);
-        }, 0);
+        let totalMinutesFotografer = 0;
+        let totalMinutesEditor = 0;
+        let totalMinutesAssist = 0;
 
-        const totalMinutesEditor = filteredData.reduce((sum, item) => {
-            return sum + timeToMinutes(item.jamEditor);
-        }, 0);
+        if (filterRole === "assist") {
+            // Untuk assist, hitung total jam assist
+            totalMinutesAssist = filteredData.reduce((sum, item) => {
+                return sum + timeToMinutes(item.jamAssist || 0);
+            }, 0);
+        } else {
+            // Untuk role lain, hitung seperti biasa
+            totalMinutesFotografer = filteredData.reduce((sum, item) => {
+                return sum + timeToMinutes(item.jamFotografer);
+            }, 0);
+
+            totalMinutesEditor = filteredData.reduce((sum, item) => {
+                return sum + timeToMinutes(item.jamEditor);
+            }, 0);
+        }
 
         return {
             totalJobs: filteredData.length,
@@ -158,8 +188,10 @@ const useFilteredData = (
             ).length,
             totalJamFotografer: minutesToDecimal(totalMinutesFotografer),
             totalJamEditor: minutesToDecimal(totalMinutesEditor),
+            totalJamAssist: minutesToDecimal(totalMinutesAssist),
             totalMinutesFotografer,
             totalMinutesEditor,
+            totalMinutesAssist,
             filterRole,
         };
     }, [filteredData, filterRole]);
@@ -169,7 +201,7 @@ const useFilteredData = (
 
 const Laporan = ({ stats }) => {
     // Ambil props dari Laravel (ScheduleController)
-    const { schedules } = usePage().props;
+    const { schedules, assistSchedules } = usePage().props;
 
     // State management
     const [searchTerm, setSearchTerm] = useState("");
@@ -186,6 +218,7 @@ const Laporan = ({ stats }) => {
 
     const { filteredData, summary } = useFilteredData(
         schedules,
+        assistSchedules,
         searchTerm,
         filterStatus,
         filterRole,
@@ -247,6 +280,16 @@ const Laporan = ({ stats }) => {
         }
     };
 
+    // Get total count for filter info
+    const getTotalCount = () => {
+        if (filterRole === "assist") {
+            return assistSchedules?.length || 0;
+        } else if (filterRole === "editor") {
+            return schedules.filter(item => item.editor_id !== null && item.editor !== null).length;
+        }
+        return schedules.length;
+    };
+
     return (
         <>
             <Head title="Laporan" />
@@ -296,7 +339,7 @@ const Laporan = ({ stats }) => {
                             itemsPerPage={itemsPerPage}
                             setItemsPerPage={setItemsPerPage}
                             filteredCount={filteredData.length}
-                            totalCount={schedules.length}
+                            totalCount={getTotalCount()}
                         />
                     </div>
 
@@ -332,12 +375,28 @@ const Laporan = ({ stats }) => {
                                     <p className="font-medium text-gray-900 dark:text-gray-100">
                                         Tanggal:
                                     </p>
-                                    <p>{selectedDetail.tanggal}</p>
+                                    <p>{new Date(selectedDetail.tanggal).toLocaleDateString("id-ID")}</p>
                                 </div>
                             </div>
 
-                            {/* Fotografer & Jam - One Row */}
-                            {(filterRole === "all" ||
+                            {/* Jam Mulai & Selesai - One Row */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                                        Jam Mulai:
+                                    </p>
+                                    <p>{selectedDetail.jamMulai?.slice(0, 5)}</p>
+                                </div>
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                                        Jam Selesai:
+                                    </p>
+                                    <p>{selectedDetail.jamSelesai?.slice(0, 5)}</p>
+                                </div>
+                            </div>
+
+                            {/* Fotografer & Jam - One Row (tidak tampil untuk role assist) */}
+                            {filterRole !== "assist" && (filterRole === "all" ||
                                 filterRole === "fotografer") && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -370,8 +429,52 @@ const Laporan = ({ stats }) => {
                                 </div>
                             )}
 
-                            {/* Assistants - Simple List */}
-                            {(filterRole === "all" ||
+                            {/* Assistant info - untuk role assist */}
+                            {filterRole === "assist" && selectedDetail.assistFotografer && (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                Fotografer Utama:
+                                            </p>
+                                            <p>{selectedDetail.mainFotografer?.nama || selectedDetail.fotografer?.nama}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                Assistant (Fotografer):
+                                            </p>
+                                            <p>{selectedDetail.assistFotografer.nama}</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                Jam Assist:
+                                            </p>
+                                            <p>
+                                                {(() => {
+                                                    const jam = selectedDetail.jamAssist ?? 0;
+                                                    return parseFloat(jam) % 1 === 0
+                                                        ? parseInt(jam)
+                                                        : jam.toString().replace(".", ",");
+                                                })()}{" "}
+                                                jam
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                Role:
+                                            </p>
+                                            <p className="text-blue-600 dark:text-blue-400 font-medium">
+                                                Assistant Fotografer
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Assistants - Simple List (untuk role all atau fotografer, bukan assist) */}
+                            {filterRole !== "assist" && (filterRole === "all" ||
                                 filterRole === "fotografer") &&
                                 selectedDetail.assists &&
                                 selectedDetail.assists.length > 0 && (
@@ -408,8 +511,8 @@ const Laporan = ({ stats }) => {
                                     </div>
                                 )}
 
-                            {/* Editor & Jam - One Row */}
-                            {(filterRole === "all" ||
+                            {/* Editor & Jam - One Row (tidak tampil untuk role assist) */}
+                            {filterRole !== "assist" && (filterRole === "all" ||
                                 filterRole === "editor") && (
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -464,8 +567,8 @@ const Laporan = ({ stats }) => {
                                 </p>
                             </div>
 
-                            {/* Drive Links */}
-                            {(filterRole === "all" ||
+                            {/* Drive Links - tidak tampil untuk role assist */}
+                            {filterRole !== "assist" && (filterRole === "all" ||
                                 filterRole === "fotografer") && (
                                 <div>
                                     <p className="font-medium text-gray-900 dark:text-gray-100">
@@ -490,7 +593,7 @@ const Laporan = ({ stats }) => {
                                 </div>
                             )}
 
-                            {(filterRole === "all" ||
+                            {filterRole !== "assist" && (filterRole === "all" ||
                                 filterRole === "editor") && (
                                 <div>
                                     <p className="font-medium text-gray-900 dark:text-gray-100">

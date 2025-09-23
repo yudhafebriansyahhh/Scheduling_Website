@@ -8,21 +8,27 @@ import CustomTimeInput from "../../../Components/CustomTimeInput";
 const EditSchedule = () => {
     const { schedule, fotografers, editors } = usePage().props;
 
-    // Prefill data dari schedule - FIXED field names
+    // Helper untuk format jam dari DB (HH:mm:ss -> HH:mm)
+    const formatTime = (time) => {
+        if (!time) return "";
+        return time.length === 8 ? time.slice(0, 5) : time;
+    };
+
+    // Prefill data dari schedule
     const { data, setData, put, processing, errors } = useForm({
         tanggal: schedule.tanggal || "",
-        jamMulai: schedule.jamMulai || "",  // Changed from jam_mulai
-        jamSelesai: schedule.jamSelesai || "", // Changed from jam_selesai
-        namaEvent: schedule.namaEvent || "",   // Changed from nama_event
+        jamMulai: formatTime(schedule.jamMulai) || "",
+        jamSelesai: formatTime(schedule.jamSelesai) || "",
+        namaEvent: schedule.namaEvent || "",
         fotografer_id: schedule.fotografer_id || "",
         editor_id: schedule.editor_id || "",
-        jamEditor: schedule.jamEditor || "",   // Changed from jam_editor
+        jamEditor: schedule.jamEditor || "",
         lapangan: schedule.lapangan || "",
         catatan: schedule.catatan || "",
         assistants: schedule.assistants
             ? schedule.assistants.map((assist) => ({
                   fotografer_id: assist.fotografer_id,
-                  jamAssist: assist.jamAssist, // Changed from jam_assist
+                  jamAssist: formatTime(assist.jamAssist),
               }))
             : [],
     });
@@ -31,6 +37,7 @@ const EditSchedule = () => {
         schedule.assistants && schedule.assistants.length > 0
     );
     const [showEditor, setShowEditor] = useState(!!schedule.editor_id);
+    const [isNewSchedule, setIsNewSchedule] = useState(false); // Track if this is a new schedule being created
 
     const addOneHour = (timeString) => {
         if (!timeString) return "";
@@ -77,14 +84,29 @@ const EditSchedule = () => {
         setShowEditor(false);
     };
 
-    // Jam mulai - FIXED field names
+    // Jam mulai - FIXED: Only auto-set jamSelesai if it's empty or this is a new input
     const handleJamMulaiChange = (time) => {
-        const nextHour = addOneHour(time);
-        setData((prevData) => ({
-            ...prevData,
-            jamMulai: time,
-            jamSelesai: nextHour,
-        }));
+        setData((prevData) => {
+            // Only auto-set jamSelesai if it's currently empty or if user is creating new schedule
+            const shouldAutoSetEndTime = !prevData.jamSelesai || isNewSchedule;
+
+            return {
+                ...prevData,
+                jamMulai: time,
+                // Only update jamSelesai if it's empty or this is a new schedule
+                jamSelesai: shouldAutoSetEndTime ? addOneHour(time) : prevData.jamSelesai,
+            };
+        });
+    };
+
+    // Handle jamSelesai change independently
+    const handleJamSelesaiChange = (time) => {
+        setData("jamSelesai", time);
+    };
+
+    // Handle tanggal change without affecting times
+    const handleTanggalChange = (date) => {
+        setData("tanggal", date);
     };
 
     const handleSubmit = (e) => {
@@ -125,6 +147,7 @@ const EditSchedule = () => {
                         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                             Edit Schedule
                         </h1>
+
                     </div>
 
                     {/* Form Container */}
@@ -144,7 +167,7 @@ const EditSchedule = () => {
                                 </label>
                                 <CustomDateInput
                                     value={data.tanggal}
-                                    onChange={(date) => setData("tanggal", date)}
+                                    onChange={handleTanggalChange}
                                     placeholder="Pilih tanggal event"
                                     required
                                     disabled={processing}
@@ -156,7 +179,7 @@ const EditSchedule = () => {
                                 )}
                             </div>
 
-                            {/* Jam - FIXED field names */}
+                            {/* Jam - FIXED: Independent controls */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -181,7 +204,7 @@ const EditSchedule = () => {
                                     </label>
                                     <CustomTimeInput
                                         value={data.jamSelesai}
-                                        onChange={(time) => setData("jamSelesai", time)}
+                                        onChange={handleJamSelesaiChange}
                                         placeholder="Pilih jam selesai"
                                         required
                                         disabled={processing}
@@ -194,7 +217,7 @@ const EditSchedule = () => {
                                 </div>
                             </div>
 
-                            {/* Nama Event - FIXED field name */}
+                            {/* Nama Event */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Nama Event
@@ -284,7 +307,7 @@ const EditSchedule = () => {
                                             <select
                                                 value={data.editor_id}
                                                 onChange={(e) => setData("editor_id", e.target.value)}
-                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                             >
                                                 <option value="">Pilih Editor</option>
                                                 {editors.map((e) => (
@@ -322,7 +345,7 @@ const EditSchedule = () => {
                                 </div>
                             )}
 
-                            {/* Assistant Forms - FIXED field name */}
+                            {/* Assistant Forms */}
                             {showAssistants &&
                                 data.assistants.map((assistant, index) => (
                                     <div
@@ -429,13 +452,13 @@ const EditSchedule = () => {
                             </div>
 
                             {/* Submit Button */}
-                            <div className="flex justify-end pt-4">
+                            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-600">
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="px-8 py-3 bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-8 py-3 bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                                 >
-                                    {processing ? "Updating..." : "Update"}
+                                    {processing ? "Updating..." : "Update Schedule"}
                                 </button>
                             </div>
                         </form>
