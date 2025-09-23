@@ -32,7 +32,7 @@ export const exportToCSV = (filteredData, filterRole = 'all') => {
         item.tanggal,
         item.jamMulai || '-',
         item.jamSelesai || '-',
-        `"${item.namaTim}"`
+        `"${item.namaEvent}"`
       ];
 
       if (filterRole === 'all' || filterRole === 'fotografer') {
@@ -126,7 +126,7 @@ export const exportToPDF = (filteredData, summary, filterRole = 'all') => {
 
   // Dynamic table headers based on filterRole
   const getTableHeaders = () => {
-    let headers = '<th>No</th><th>Tanggal</th><th>Jam Mulai</th><th>Jam Selesai</th><th>Nama Tim</th>';
+    let headers = '<th>No</th><th>Tanggal</th><th>Jam Mulai</th><th>Jam Selesai</th><th>Nama Event</th>';
 
     if (filterRole === 'all' || filterRole === 'fotografer') {
       headers += '<th>Fotografer</th>';
@@ -157,7 +157,7 @@ export const exportToPDF = (filteredData, summary, filterRole = 'all') => {
         <td>${formatDate(item.tanggal)}</td>
         <td>${item.jamMulai || '-'}</td>
         <td>${item.jamSelesai || '-'}</td>
-        <td>${item.namaTim}</td>
+        <td>${item.namaEvent}</td>
       `;
 
       if (filterRole === 'all' || filterRole === 'fotografer') {
@@ -276,4 +276,4 @@ export const exportToPDF = (filteredData, summary, filterRole = 'all') => {
     printWindow.print();
     printWindow.close();
   }, 250);
-};  
+};
