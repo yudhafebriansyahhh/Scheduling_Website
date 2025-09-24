@@ -332,7 +332,7 @@ const Laporan = ({ stats }) => {
                                     <p className="font-medium text-gray-900 dark:text-gray-100">
                                         Tanggal:
                                     </p>
-                                    <p>{selectedDetail.tanggal}</p>
+                                    <p>{new Date(selectedDetail.tanggal).toLocaleDateString("id-ID")}</p>
                                 </div>
                             </div>
 
