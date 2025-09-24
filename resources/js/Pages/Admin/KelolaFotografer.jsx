@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { ArrowLeft, Search, Plus } from 'lucide-react';
 import Sidebar from '../../Components/Sidebar';
 import FormModal from '../../Components/FormModal';
+import Swal from 'sweetalert2';
 
 const KelolaFotografer = ({ fotografers: initialFotografers }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,6 +26,30 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
 
   // Data dari server
   const [fotografers, setFotografers] = useState(initialFotografers || []);
+
+  // SweetAlert2 untuk flash messages
+  useEffect(() => {
+    if (flash?.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: flash.success,
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    }
+
+    if (flash?.error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: flash.error,
+        confirmButtonText: 'OK'
+      });
+    }
+  }, [flash]);
 
   // Filter pencarian
   const filteredFotografers = fotografers.filter(fotografer =>
@@ -142,16 +167,57 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
     setShowEditModal(true);
   };
 
-  const handleDeleteFotografer = (fotografer) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus fotografer ${fotografer.nama}?`)) {
+  const handleDeleteFotografer = async (fotografer) => {
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      html: `Anda akan menghapus fotografer:<br><strong>${fotografer.nama}</strong>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+      // Show loading
+      Swal.fire({
+        title: 'Menghapus...',
+        text: 'Mohon tunggu sebentar',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       setIsLoading(true);
+
       router.delete(`/fotografer/${fotografer.id}`, {
         onSuccess: () => {
           setFotografers(fotografers.filter(p => p.id !== fotografer.id));
           setIsLoading(false);
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil Dihapus!',
+            text: `Fotografer ${fotografer.nama} telah dihapus`,
+            timer: 3000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          });
         },
-        onError: () => {
+        onError: (errors) => {
           setIsLoading(false);
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menghapus!',
+            text: 'Terjadi kesalahan saat menghapus fotografer',
+            confirmButtonText: 'OK'
+          });
         }
       });
     }
@@ -160,15 +226,30 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
   // Handle submit form
   const handleSubmit = () => {
     if (!formData.nama.trim()) {
-      alert('Nama harus diisi!');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: 'Nama harus diisi!',
+        confirmButtonText: 'OK'
+      });
       return;
     }
     if (!formData.email.trim()) {
-      alert('Email harus diisi!');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: 'Email harus diisi!',
+        confirmButtonText: 'OK'
+      });
       return;
     }
     if (!formData.no_hp.trim()) {
-      alert('No HP harus diisi!');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: 'No HP harus diisi!',
+        confirmButtonText: 'OK'
+      });
       return;
     }
 
@@ -200,26 +281,59 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
           setEditingFotografer(null);
           resetForm();
           setIsLoading(false);
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Data fotografer berhasil diupdate',
+            timer: 3000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          });
         },
         onError: (errors) => {
           console.error('Update error:', errors);
-          alert('Terjadi kesalahan saat mengupdate data');
           setIsLoading(false);
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Update!',
+            text: 'Terjadi kesalahan saat mengupdate data',
+            confirmButtonText: 'OK'
+          });
         }
       });
     } else {
       router.post('/fotografer', payload, {
         forceFormData: true,
         onSuccess: () => {
-          window.location.reload();
           setShowAddModal(false);
           resetForm();
           setIsLoading(false);
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Fotografer baru berhasil ditambahkan',
+            timer: 3000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          }).then(() => {
+            window.location.reload();
+          });
         },
         onError: (errors) => {
           console.error('Create error:', errors);
-          alert('Terjadi kesalahan saat menambah data');
           setIsLoading(false);
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menambah!',
+            text: 'Terjadi kesalahan saat menambah data',
+            confirmButtonText: 'OK'
+          });
         }
       });
     }
@@ -247,11 +361,21 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
     const file = e.target.files[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        alert('Harap pilih file gambar yang valid');
+        Swal.fire({
+          icon: 'error',
+          title: 'File Tidak Valid!',
+          text: 'Harap pilih file gambar yang valid (JPG, PNG, GIF)',
+          confirmButtonText: 'OK'
+        });
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Ukuran file terlalu besar. Maksimal 5MB');
+      if (file.size > 2 * 1024 * 1024) {
+        Swal.fire({
+          icon: 'error',
+          title: 'File Terlalu Besar!',
+          text: 'Ukuran file maksimal 2MB',
+          confirmButtonText: 'OK'
+        });
         return;
       }
       const reader = new FileReader();
@@ -307,18 +431,6 @@ const KelolaFotografer = ({ fotografers: initialFotografers }) => {
             </div>
 
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Kelola Data Fotografer</h1>
-
-            {/* Flash message */}
-            {flash?.success && (
-              <div className="mb-4 p-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded-lg">
-                {flash.success}
-              </div>
-            )}
-            {flash?.error && (
-              <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 rounded-lg">
-                {flash.error}
-              </div>
-            )}
 
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
