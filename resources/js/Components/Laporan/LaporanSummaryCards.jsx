@@ -1,60 +1,125 @@
 import React from 'react';
-import { FileText } from 'lucide-react';
+import { Users, CheckCircle, Camera, Edit3, UserCheck } from 'lucide-react';
 
 const LaporanSummaryCards = ({ summary }) => {
+  const {
+    totalJobs,
+    completedJobs,
+    totalJamFotografer,
+    totalJamEditor,
+    totalJamAssist,
+    filterRole
+  } = summary;
+
+  // Format jam untuk display
+  const formatJam = (jam) => {
+    const numJam = parseFloat(jam);
+    return numJam % 1 === 0 ? parseInt(numJam).toString() : jam.toString().replace('.', ',');
+  };
+
+  // Cards berdasarkan role yang dipilih
+  const getCards = () => {
+    const baseCards = [
+      {
+        title: "Total Jobs",
+        value: totalJobs,
+        icon: Users,
+        color: "bg-blue-500",
+        cardClass: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+      },
+      {
+        title: "Jobs Selesai",
+        value: completedJobs,
+        icon: CheckCircle,
+        color: "bg-green-500",
+        cardClass: "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+      }
+    ];
+
+    if (filterRole === 'fotografer') {
+      return [
+        ...baseCards,
+        {
+          title: "Total Jam Fotografer",
+          value: `${formatJam(totalJamFotografer)} jam`,
+          icon: Camera,
+          color: "bg-purple-500",
+          cardClass: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
+        }
+      ];
+    } else if (filterRole === 'editor') {
+      return [
+        ...baseCards,
+        {
+          title: "Total Jam Editor",
+          value: `${formatJam(totalJamEditor)} jam`,
+          icon: Edit3,
+          color: "bg-orange-500",
+          cardClass: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
+        }
+      ];
+    } else if (filterRole === 'assist') {
+      return [
+        ...baseCards,
+        {
+          title: "Total Jam Assistant",
+          value: `${formatJam(totalJamAssist)} jam`,
+          icon: UserCheck,
+          color: "bg-indigo-500",
+          cardClass: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800"
+        }
+      ];
+    } else {
+      // Role 'all' - tampilkan semua
+      return [
+        ...baseCards,
+        {
+          title: "Total Jam Fotografer",
+          value: `${formatJam(totalJamFotografer)} jam`,
+          icon: Camera,
+          color: "bg-purple-500",
+          cardClass: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
+        },
+        {
+          title: "Total Jam Editor",
+          value: `${formatJam(totalJamEditor)} jam`,
+          icon: Edit3,
+          color: "bg-orange-500",
+          cardClass: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
+        }
+      ];
+    }
+  };
+
+  const cards = getCards();
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Pekerjaan</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{summary.totalJobs}</p>
-          </div>
-          <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-            <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Selesai</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{summary.completedJobs}</p>
-          </div>
-          <div className="h-12 w-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-            <FileText className="h-6 w-6 text-green-600 dark:text-green-400" />
-          </div>
-        </div>
-      </div>
-
-      {(summary.filterRole === 'all' || summary.filterRole === 'fotografer') && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Jam Fotografer</p>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{summary.totalJamFotografer}h</p>
-            </div>
-            <div className="h-12 w-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-              <FileText className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+    <div className={`grid gap-6 mb-8 ${
+      cards.length === 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+    }`}>
+      {cards.map((card, index) => {
+        const IconComponent = card.icon;
+        return (
+          <div
+            key={index}
+            className={`p-6 rounded-xl border transition-colors duration-300 ${card.cardClass}`}
+          >
+            <div className="flex items-center">
+              <div className={`p-3 rounded-lg ${card.color} mr-4`}>
+                <IconComponent className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  {card.title}
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {card.value}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {(summary.filterRole === 'all' || summary.filterRole === 'editor') && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Jam Editor</p>
-              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{summary.totalJamEditor}h</p>
-            </div>
-            <div className="h-12 w-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
-              <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-            </div>
-          </div>
-        </div>
-      )}
+        );
+      })}
     </div>
   );
 };

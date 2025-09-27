@@ -5,15 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ScheduleFotograferAssist extends Model
+class ScheduleEditorAssist extends Model
 {
     use HasFactory;
 
-    protected $table = 'schedule_fotografer_assist';
+    protected $table = 'schedule_editor_assists';
 
     protected $fillable = [
         'schedule_id',
-        'fotografer_id',
+        'editor_id',
         'jamAssist'
     ];
 
@@ -27,9 +27,9 @@ class ScheduleFotograferAssist extends Model
         return $this->belongsTo(Schedule::class);
     }
 
-    // Relasi ke Fotografer
-    public function fotografer()
+    // Relasi ke Editor
+    public function editor()
     {
-        return $this->belongsTo(Fotografer::class);
+        return $this->belongsTo(Editor::class);
     }
 }

@@ -47,6 +47,11 @@ class Schedule extends Model
         return $this->hasMany(ScheduleFotograferAssist::class);
     }
 
+    public function editorAssists()
+    {
+        return $this->hasMany(ScheduleEditorAssist::class);
+    }
+
     /**
      * Accessor untuk format tanggal yang readable untuk display
      */

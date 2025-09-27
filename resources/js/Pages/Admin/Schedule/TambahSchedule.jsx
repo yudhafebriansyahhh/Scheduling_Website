@@ -18,7 +18,8 @@ const TambahSchedule = () => {
         jamEditor: "",
         lapangan: "",
         catatan: "",
-        assistants: [], // ✅ Fixed: Changed from "assists" to "assistants"
+        assistants: [], // assist fotografer
+        assistEditors: [], // assist editor
     });
 
     const [showAssistants, setShowAssistants] = useState(false);
@@ -35,7 +36,8 @@ const TambahSchedule = () => {
     const addAssistant = () => {
         setData((prevData) => ({
             ...prevData,
-            assistants: [ // ✅ Fixed: Changed from "assists"
+            assistants: [
+                // ✅ Fixed: Changed from "assists"
                 ...prevData.assistants, // ✅ Fixed: Changed from "assists"
                 { fotografer_id: "", jamAssist: "" },
             ],
@@ -48,7 +50,8 @@ const TambahSchedule = () => {
             ...prevData,
             assistants: prevData.assistants.filter((_, i) => i !== index), // ✅ Fixed
         }));
-        if (data.assistants.length === 1) { // ✅ Fixed
+        if (data.assistants.length === 1) {
+            // ✅ Fixed
             setShowAssistants(false);
         }
     };
@@ -56,8 +59,12 @@ const TambahSchedule = () => {
     const updateAssistant = (index, field, value) => {
         setData((prevData) => ({
             ...prevData,
-            assistants: prevData.assistants.map((assistant, i) => // ✅ Fixed
-                i === index ? { ...assistant, [field]: value } : assistant
+            assistants: prevData.assistants.map(
+                (
+                    assistant,
+                    i // ✅ Fixed
+                ) =>
+                    i === index ? { ...assistant, [field]: value } : assistant
             ),
         }));
     };
@@ -67,6 +74,33 @@ const TambahSchedule = () => {
     const removeEditor = () => {
         setData((prevData) => ({ ...prevData, editor_id: "", jamEditor: "" }));
         setShowEditor(false);
+    };
+
+    // Assist Editor
+    const addAssistEditor = () => {
+        setData((prev) => ({
+            ...prev,
+            assistEditors: [
+                ...prev.assistEditors,
+                { editor_id: "", jamAssist: "" },
+            ],
+        }));
+    };
+
+    const removeAssistEditor = (index) => {
+        setData((prev) => ({
+            ...prev,
+            assistEditors: prev.assistEditors.filter((_, i) => i !== index),
+        }));
+    };
+
+    const updateAssistEditor = (index, field, value) => {
+        setData((prev) => ({
+            ...prev,
+            assistEditors: prev.assistEditors.map((item, i) =>
+                i === index ? { ...item, [field]: value } : item
+            ),
+        }));
     };
 
     // Jam mulai
@@ -239,15 +273,18 @@ const TambahSchedule = () => {
 
                             {/* Tombol tambah assist & editor */}
                             <div className="flex gap-4">
+                                {/* Assist Fotografer */}
                                 <button
                                     type="button"
                                     onClick={addAssistant}
                                     className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
                                 >
                                     <Plus size={16} />
-                                    Tambah Assist
+                                    Tambah Assist Fotografer
                                 </button>
-                                {!showEditor && (
+
+                                {/* Editor / Assist Editor */}
+                                {!showEditor ? (
                                     <button
                                         type="button"
                                         onClick={addEditor}
@@ -255,6 +292,15 @@ const TambahSchedule = () => {
                                     >
                                         <Plus size={16} />
                                         Tambah Editor
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={addAssistEditor}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
+                                    >
+                                        <Plus size={16} />
+                                        Tambah Assist Editor
                                     </button>
                                 )}
                             </div>
@@ -335,85 +381,164 @@ const TambahSchedule = () => {
                                 </div>
                             )}
 
-                            {/* Assistant Forms */}
-                            {showAssistants &&
-                                data.assistants.map((assistant, index) => ( // ✅ Fixed: Changed from data.assists
-                                    <div
-                                        key={index}
-                                        className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300"
-                                    >
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                Assistant {index + 1}
-                                            </h4>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    removeAssistant(index)
+                            {data.assistEditors.map((assist, index) => (
+                                <div
+                                    key={index}
+                                    className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300"
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Assist Editor {index + 1}
+                                        </h4>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                removeAssistEditor(index)
+                                            }
+                                            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Pilih Assist Editor
+                                            </label>
+                                            <select
+                                                value={assist.editor_id}
+                                                onChange={(e) =>
+                                                    updateAssistEditor(
+                                                        index,
+                                                        "editor_id",
+                                                        e.target.value
+                                                    )
                                                 }
-                                                className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                                             >
-                                                <X size={18} />
-                                            </button>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                    Pilih Assistant
-                                                </label>
-                                                <select
-                                                    value={
-                                                        assistant.fotografer_id ||
-                                                        ""
-                                                    }
-                                                    onChange={(e) =>
-                                                        updateAssistant(
-                                                            index,
-                                                            "fotografer_id",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                                >
-                                                    <option value="">
-                                                        Pilih Assistant
+                                                <option value="">
+                                                    Pilih Assist Editor
+                                                </option>
+                                                {editors.map((ed) => (
+                                                    <option
+                                                        key={ed.id}
+                                                        value={ed.id}
+                                                    >
+                                                        {ed.nama}
                                                     </option>
-                                                    {fotografers.map((f) => (
-                                                        <option
-                                                            key={f.id}
-                                                            value={f.id}
-                                                        >
-                                                            {f.nama}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                    Jam Assist
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    step="0.5"
-                                                    min="0"
-                                                    value={
-                                                        assistant.jamAssist ||
-                                                        ""
-                                                    }
-                                                    onChange={(e) =>
-                                                        updateAssistant(
-                                                            index,
-                                                            "jamAssist",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    placeholder="0.0"
-                                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                                />
-                                            </div>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Jam Assist
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.5"
+                                                min="0"
+                                                value={assist.jamAssist}
+                                                onChange={(e) =>
+                                                    updateAssistEditor(
+                                                        index,
+                                                        "jamAssist",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="0.0"
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                            />
                                         </div>
                                     </div>
-                                ))}
+                                </div>
+                            ))}
+
+                            {/* Assistant Forms */}
+                            {showAssistants &&
+                                data.assistants.map(
+                                    (
+                                        assistant,
+                                        index // ✅ Fixed: Changed from data.assists
+                                    ) => (
+                                        <div
+                                            key={index}
+                                            className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300"
+                                        >
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    Assist Fotografer {index + 1}
+                                                </h4>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        removeAssistant(index)
+                                                    }
+                                                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                                >
+                                                    <X size={18} />
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        Pilih Assistant
+                                                    </label>
+                                                    <select
+                                                        value={
+                                                            assistant.fotografer_id ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            updateAssistant(
+                                                                index,
+                                                                "fotografer_id",
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                                    >
+                                                        <option value="">
+                                                            Pilih Assistant
+                                                        </option>
+                                                        {fotografers.map(
+                                                            (f) => (
+                                                                <option
+                                                                    key={f.id}
+                                                                    value={f.id}
+                                                                >
+                                                                    {f.nama}
+                                                                </option>
+                                                            )
+                                                        )}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                        Jam Assist
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        step="0.5"
+                                                        min="0"
+                                                        value={
+                                                            assistant.jamAssist ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            updateAssistant(
+                                                                index,
+                                                                "jamAssist",
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        placeholder="0.0"
+                                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                )}
 
                             {/* Lapangan */}
                             <div>

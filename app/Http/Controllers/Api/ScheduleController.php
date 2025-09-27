@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Schedule;
+use Carbon\Carbon;
 
 class ScheduleController extends Controller
 {
@@ -31,14 +32,13 @@ class ScheduleController extends Controller
             $assistScheduleIds = \App\Models\ScheduleFotograferAssist::where('fotografer_id', $fotografer->id)
                 ->pluck('schedule_id');
             
-            // Gabungkan kedua array dan hapus duplikat
+            // Gabungkan keduanya
             $allScheduleIds = $mainScheduleIds->merge($assistScheduleIds)->unique();
-            
-            // Query schedule berdasarkan semua ID yang ditemukan
-            $query = Schedule::select('id','tanggal', 'jamMulai', 'jamSelesai', 'namaEvent', 'fotografer_id', 'editor_id','catatan',
-                'linkGdriveFotografer', 'linkGdriveEditor')
+
+            $query = Schedule::select('id','tanggal','jamMulai','jamSelesai','namaEvent','fotografer_id','editor_id','catatan',
+                'linkGdriveFotografer','linkGdriveEditor')
                 ->whereIn('id', $allScheduleIds);
-                
+
         } elseif ($user->role === 'editor') {
             $editor = \App\Models\Editor::where('user_id', $user->id)->first();
             if (!$editor) {
@@ -47,15 +47,25 @@ class ScheduleController extends Controller
                     'message' => 'Editor tidak ditemukan untuk user ini'
                 ], 404);
             }
+
+            // Ambil ID schedule dimana user adalah editor utama
+            $mainScheduleIds = Schedule::where('editor_id', $editor->id)->pluck('id');
             
-            $query = Schedule::select('id','tanggal', 'jamMulai', 'jamSelesai', 'namaEvent', 'fotografer_id', 'editor_id','catatan',
-                'linkGdriveFotografer', 'linkGdriveEditor')
-                ->where('editor_id', $editor->id);
-                
+            // Ambil ID schedule dimana user adalah assist editor
+            $assistScheduleIds = \App\Models\ScheduleEditorAssist::where('editor_id', $editor->id)
+                ->pluck('schedule_id');
+            
+            // Gabungkan keduanya
+            $allScheduleIds = $mainScheduleIds->merge($assistScheduleIds)->unique();
+
+            $query = Schedule::select('id','tanggal','jamMulai','jamSelesai','namaEvent','fotografer_id','editor_id','catatan',
+                'linkGdriveFotografer','linkGdriveEditor')
+                ->whereIn('id', $allScheduleIds);
+
         } elseif ($user->role === 'admin') {
-            // admin bisa lihat semua, jadi tidak ada where
-            $query = Schedule::select('id','tanggal', 'jamMulai', 'jamSelesai', 'namaEvent', 'fotografer_id', 'editor_id','catatan',
-                'linkGdriveFotografer', 'linkGdriveEditor');
+            // admin bisa lihat semua
+            $query = Schedule::select('id','tanggal','jamMulai','jamSelesai','namaEvent','fotografer_id','editor_id','catatan',
+                'linkGdriveFotografer','linkGdriveEditor');
         } else {
             return response()->json([
                 'status' => 'error',
@@ -68,13 +78,13 @@ class ScheduleController extends Controller
             ->orderBy('jamMulai', 'desc')
             ->get();
 
-        // Format ulang data untuk menghilangkan timestamp dari tanggal
+        // Format data
         $formattedData = $schedules->map(function ($schedule) use ($user) {
             $scheduleData = [
                 'id' => $schedule->id,
-                'tanggal' => date('Y-m-d', strtotime($schedule->tanggal)), // Format tanggal menjadi Y-m-d saja
-                'jamMulai' => $schedule->jamMulai,
-                'jamSelesai' => $schedule->jamSelesai,
+                'tanggal' => date('Y-m-d', strtotime($schedule->tanggal)),
+                'jamMulai' => Carbon::parse($schedule->jamMulai)->format('H:i'),
+                'jamSelesai' => Carbon::parse($schedule->jamSelesai)->format('H:i'),
                 'namaEvent' => $schedule->namaEvent,
                 'fotografer_id' => $schedule->fotografer_id,
                 'editor_id' => $schedule->editor_id,
@@ -82,26 +92,37 @@ class ScheduleController extends Controller
                 'linkGdriveFotografer' => $schedule->linkGdriveFotografer,
                 'linkGdriveEditor' => $schedule->linkGdriveEditor,
             ];
-            
-            // Tambahkan informasi role user dalam schedule ini (khusus untuk fotografer)
+
             if ($user->role === 'fotografer') {
                 $fotografer = \App\Models\Fotografer::where('user_id', $user->id)->first();
-                
                 if ($schedule->fotografer_id == $fotografer->id) {
                     $scheduleData['user_role_in_schedule'] = 'fotografer_utama';
                 } else {
-                    // Cek apakah user adalah assist di schedule ini
                     $assistData = \App\Models\ScheduleFotograferAssist::where('schedule_id', $schedule->id)
                         ->where('fotografer_id', $fotografer->id)
                         ->first();
-                    
                     if ($assistData) {
                         $scheduleData['user_role_in_schedule'] = 'fotografer_assist';
-                        $scheduleData['jam_assist'] = $assistData->jamAssist;
+                        $scheduleData['jam_assist'] = Carbon::parse($assistData->jamAssist)->format('H:i');
                     }
                 }
             }
-            
+
+            if ($user->role === 'editor') {
+                $editor = \App\Models\Editor::where('user_id', $user->id)->first();
+                if ($schedule->editor_id == $editor->id) {
+                    $scheduleData['user_role_in_schedule'] = 'editor_utama';
+                } else {
+                    $assistData = \App\Models\ScheduleEditorAssist::where('schedule_id', $schedule->id)
+                        ->where('editor_id', $editor->id)
+                        ->first();
+                    if ($assistData) {
+                        $scheduleData['user_role_in_schedule'] = 'editor_assist';
+                        $scheduleData['jam_assist'] = Carbon::parse($assistData->jamAssist)->format('H:i');
+                    }
+                }
+            }
+
             return $scheduleData;
         });
 
@@ -207,9 +228,9 @@ class ScheduleController extends Controller
         // Format response data dengan tanggal yang sudah diformat
         $formattedSchedule = [
             'id' => $schedule->id,
-            'tanggal' => date('Y-m-d', strtotime($schedule->tanggal)), // Format tanggal menjadi Y-m-d saja
-            'jamMulai' => $schedule->jamMulai,
-            'jamSelesai' => $schedule->jamSelesai,
+            'tanggal' => date('Y-m-d', strtotime($schedule->tanggal)),
+            'jamMulai' => Carbon::parse($schedule->jamMulai)->format('H:i'),
+            'jamSelesai' => Carbon::parse($schedule->jamSelesai)->format('H:i'),
             'namaEvent' => $schedule->namaEvent,
             'fotografer_id' => $schedule->fotografer_id,
             'editor_id' => $schedule->editor_id,

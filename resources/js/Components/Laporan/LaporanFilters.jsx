@@ -24,7 +24,11 @@ const LaporanFilters = ({
     if (filterRole === 'fotografer') {
       return "Cari tim, fotografer, lapangan...";
     } else if (filterRole === 'editor') {
-      return "Cari tim, editor, lapangan...";
+      return "Cari tim, editor utama, assistant editor, lapangan...";
+    } else if (filterRole === 'assist') {
+      return "Cari tim, assistant fotografer, lapangan...";
+    } else if (filterRole === 'editorAssist') {
+      return "Cari tim, assistant editor, lapangan...";
     }
     return "Cari tim, fotografer, editor, lapangan...";
   };
@@ -79,6 +83,8 @@ const LaporanFilters = ({
                 <option value="all">Semua Role</option>
                 <option value="fotografer">Fotografer</option>
                 <option value="editor">Editor</option>
+                <option value="assist">Assistant Fotografer</option>
+                <option value="editorAssist">Assistant Editor</option>
               </select>
             </div>
 

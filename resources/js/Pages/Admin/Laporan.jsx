@@ -15,6 +15,8 @@ import { exportToCSV, exportToPDF } from "../../utils/laporanExportUtils";
 // Custom hook untuk filtering dan summary
 const useFilteredData = (
     data,
+    assistData,
+    editorAssistData,
     searchTerm,
     filterStatus,
     filterRole,
@@ -74,16 +76,28 @@ const useFilteredData = (
     };
 
     const filteredData = useMemo(() => {
-        return data.filter((item) => {
+        let sourceData = data;
+
+        // Jika filter role adalah "assist", gunakan assistData
+        if (filterRole === "assist") {
+            sourceData = assistData || [];
+        } else if (filterRole === "editorAssist") {
+            sourceData = editorAssistData || [];
+        } else if (filterRole === "editor") {
+            // PERUBAHAN: Filter hanya schedule yang memiliki editor assist
+            sourceData = editorAssistData || [];
+        }
+
+        return sourceData.filter((item) => {
             // Dynamic search based on filterRole
             let matchSearch = false;
 
-            // Always search in these fields
+            // Basic search (selalu ada)
             const basicSearch =
                 item.namaEvent
-                    .toLowerCase()
+                    ?.toLowerCase()
                     .includes(searchTerm.toLowerCase()) ||
-                item.lapangan.toLowerCase().includes(searchTerm.toLowerCase());
+                item.lapangan?.toLowerCase().includes(searchTerm.toLowerCase());
 
             // Role-specific search
             if (filterRole === "all") {
@@ -102,9 +116,25 @@ const useFilteredData = (
                         ?.toLowerCase()
                         .includes(searchTerm.toLowerCase());
             } else if (filterRole === "editor") {
+                // PERUBAHAN: Untuk editor filter, cari berdasarkan editor utama dan assistant editor
                 matchSearch =
                     basicSearch ||
-                    item.editor?.nama
+                    item.mainEditor?.nama
+                        ?.toLowerCase()
+                        .includes(searchTerm.toLowerCase()) ||
+                    item.assistEditor?.nama
+                        ?.toLowerCase()
+                        .includes(searchTerm.toLowerCase());
+            } else if (filterRole === "assist") {
+                matchSearch =
+                    basicSearch ||
+                    item.assistFotografer?.nama
+                        ?.toLowerCase()
+                        .includes(searchTerm.toLowerCase());
+            } else if (filterRole === "editorAssist") {
+                matchSearch =
+                    basicSearch ||
+                    item.assistEditor?.nama
                         ?.toLowerCase()
                         .includes(searchTerm.toLowerCase());
             } else {
@@ -135,6 +165,8 @@ const useFilteredData = (
         });
     }, [
         data,
+        assistData,
+        editorAssistData,
         searchTerm,
         filterStatus,
         filterRole,
@@ -143,13 +175,25 @@ const useFilteredData = (
     ]);
 
     const summary = useMemo(() => {
-        const totalMinutesFotografer = filteredData.reduce((sum, item) => {
-            return sum + timeToMinutes(item.jamFotografer);
-        }, 0);
+        let totalMinutesFotografer = 0;
+        let totalMinutesEditor = 0;
+        let totalMinutesAssist = 0;
 
-        const totalMinutesEditor = filteredData.reduce((sum, item) => {
-            return sum + timeToMinutes(item.jamEditor);
-        }, 0);
+        if (filterRole === "assist" || filterRole === "editorAssist" || filterRole === "editor") {
+            // Untuk assist dan editor assist, hitung total jam assist
+            totalMinutesAssist = filteredData.reduce((sum, item) => {
+                return sum + timeToMinutes(item.jamAssist || 0);
+            }, 0);
+        } else {
+            // Untuk role lain, hitung seperti biasa
+            totalMinutesFotografer = filteredData.reduce((sum, item) => {
+                return sum + timeToMinutes(item.jamFotografer);
+            }, 0);
+
+            totalMinutesEditor = filteredData.reduce((sum, item) => {
+                return sum + timeToMinutes(item.jamEditor);
+            }, 0);
+        }
 
         return {
             totalJobs: filteredData.length,
@@ -158,8 +202,10 @@ const useFilteredData = (
             ).length,
             totalJamFotografer: minutesToDecimal(totalMinutesFotografer),
             totalJamEditor: minutesToDecimal(totalMinutesEditor),
+            totalJamAssist: minutesToDecimal(totalMinutesAssist),
             totalMinutesFotografer,
             totalMinutesEditor,
+            totalMinutesAssist,
             filterRole,
         };
     }, [filteredData, filterRole]);
@@ -169,7 +215,7 @@ const useFilteredData = (
 
 const Laporan = ({ stats }) => {
     // Ambil props dari Laravel (ScheduleController)
-    const { schedules } = usePage().props;
+    const { schedules, assistSchedules, editorAssistSchedules } = usePage().props;
 
     // State management
     const [searchTerm, setSearchTerm] = useState("");
@@ -186,6 +232,8 @@ const Laporan = ({ stats }) => {
 
     const { filteredData, summary } = useFilteredData(
         schedules,
+        assistSchedules,
+        editorAssistSchedules,
         searchTerm,
         filterStatus,
         filterRole,
@@ -247,6 +295,19 @@ const Laporan = ({ stats }) => {
         }
     };
 
+    // Get total count for filter info
+    const getTotalCount = () => {
+        if (filterRole === "assist") {
+            return assistSchedules?.length || 0;
+        } else if (filterRole === "editorAssist") {
+            return editorAssistSchedules?.length || 0;
+        } else if (filterRole === "editor") {
+            // PERUBAHAN: Total count untuk editor assist schedules
+            return editorAssistSchedules?.length || 0;
+        }
+        return schedules.length;
+    };
+
     return (
         <>
             <Head title="Laporan" />
@@ -296,7 +357,7 @@ const Laporan = ({ stats }) => {
                             itemsPerPage={itemsPerPage}
                             setItemsPerPage={setItemsPerPage}
                             filteredCount={filteredData.length}
-                            totalCount={schedules.length}
+                            totalCount={getTotalCount()}
                         />
                     </div>
 
@@ -332,52 +393,271 @@ const Laporan = ({ stats }) => {
                                     <p className="font-medium text-gray-900 dark:text-gray-100">
                                         Tanggal:
                                     </p>
-                                    <p>{new Date(selectedDetail.tanggal).toLocaleDateString("id-ID")}</p>
+                                    <p>
+                                        {new Date(
+                                            selectedDetail.tanggal
+                                        ).toLocaleDateString("id-ID")}
+                                    </p>
                                 </div>
                             </div>
 
-                            {/* Fotografer & Jam - One Row */}
-                            {(filterRole === "all" ||
-                                filterRole === "fotografer") && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                                            Fotografer:
-                                        </p>
-                                        <p>
-                                            {selectedDetail.fotografer?.nama ||
-                                                "-"}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                                            Jam Fotografer:
-                                        </p>
-                                        <p>
-                                            {(() => {
-                                                const jam =
-                                                    selectedDetail.jamFotografer ??
-                                                    0;
-                                                return parseFloat(jam) % 1 === 0
-                                                    ? parseInt(jam)
-                                                    : jam
-                                                          .toString()
-                                                          .replace(".", ",");
-                                            })()}{" "}
-                                            jam
-                                        </p>
-                                    </div>
+                            {/* Jam Mulai & Selesai - One Row */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                                        Jam Mulai:
+                                    </p>
+                                    <p>
+                                        {selectedDetail.jamMulai?.slice(0, 5)}
+                                    </p>
                                 </div>
-                            )}
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                                        Jam Selesai:
+                                    </p>
+                                    <p>
+                                        {selectedDetail.jamSelesai?.slice(0, 5)}
+                                    </p>
+                                </div>
+                            </div>
 
-                            {/* Assistants - Simple List */}
-                            {(filterRole === "all" ||
-                                filterRole === "fotografer") &&
+                            {/* Fotografer & Jam - One Row (tidak tampil untuk role assist atau editorAssist) */}
+                            {!["assist", "editorAssist", "editor"].includes(filterRole) &&
+                                (filterRole === "all" ||
+                                    filterRole === "fotografer") && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                Fotografer:
+                                            </p>
+                                            <p>
+                                                {selectedDetail.fotografer
+                                                    ?.nama || "-"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                Jam Fotografer:
+                                            </p>
+                                            <p>
+                                                {(() => {
+                                                    const jam =
+                                                        selectedDetail.jamFotografer ??
+                                                        0;
+                                                    return parseFloat(jam) %
+                                                        1 ===
+                                                        0
+                                                        ? parseInt(jam)
+                                                        : jam
+                                                              .toString()
+                                                              .replace(
+                                                                  ".",
+                                                                  ","
+                                                              );
+                                                })()}{" "}
+                                                jam
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                            {/* Editor info - untuk role editor */}
+                            {filterRole === "editor" &&
+                                selectedDetail.assistEditor && (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Editor Utama:
+                                                </p>
+                                                <p>
+                                                    {selectedDetail.mainEditor?.nama ||
+                                                        selectedDetail.editor?.nama}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Assistant Editor:
+                                                </p>
+                                                <p>
+                                                    {selectedDetail.assistEditor.nama}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Jam Assistant:
+                                                </p>
+                                                <p>
+                                                    {(() => {
+                                                        const jam =
+                                                            selectedDetail.jamAssist ??
+                                                            0;
+                                                        return parseFloat(jam) %
+                                                            1 ===
+                                                            0
+                                                            ? parseInt(jam)
+                                                            : jam
+                                                                  .toString()
+                                                                  .replace(
+                                                                      ".",
+                                                                      ","
+                                                                  );
+                                                    })()}{" "}
+                                                    jam
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Role:
+                                                </p>
+                                                <p className="text-purple-600 dark:text-purple-400 font-medium">
+                                                    Assistant Editor
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                            {/* Assistant info - untuk role assist */}
+                            {filterRole === "assist" &&
+                                selectedDetail.assistFotografer && (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Fotografer Utama:
+                                                </p>
+                                                <p>
+                                                    {selectedDetail
+                                                        .mainFotografer?.nama ||
+                                                        selectedDetail
+                                                            .fotografer?.nama}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Assistant (Fotografer):
+                                                </p>
+                                                <p>
+                                                    {
+                                                        selectedDetail
+                                                            .assistFotografer
+                                                            .nama
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Jam Assist:
+                                                </p>
+                                                <p>
+                                                    {(() => {
+                                                        const jam =
+                                                            selectedDetail.jamAssist ??
+                                                            0;
+                                                        return parseFloat(jam) %
+                                                            1 ===
+                                                            0
+                                                            ? parseInt(jam)
+                                                            : jam
+                                                                  .toString()
+                                                                  .replace(
+                                                                      ".",
+                                                                      ","
+                                                                  );
+                                                    })()}{" "}
+                                                    jam
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Role:
+                                                </p>
+                                                <p className="text-blue-600 dark:text-blue-400 font-medium">
+                                                    Assistant Fotografer
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                            {/* Editor Assist info - untuk role editorAssist */}
+                            {filterRole === "editorAssist" &&
+                                selectedDetail.assistEditor && (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Editor Utama:
+                                                </p>
+                                                <p>
+                                                    {selectedDetail.mainEditor
+                                                        ?.nama ||
+                                                        selectedDetail.editor
+                                                            ?.nama}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Assistant (Editor):
+                                                </p>
+                                                <p>
+                                                    {
+                                                        selectedDetail
+                                                            .assistEditor.nama
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Jam Assist:
+                                                </p>
+                                                <p>
+                                                    {(() => {
+                                                        const jam =
+                                                            selectedDetail.jamAssist ??
+                                                            0;
+                                                        return parseFloat(jam) %
+                                                            1 ===
+                                                            0
+                                                            ? parseInt(jam)
+                                                            : jam
+                                                                  .toString()
+                                                                  .replace(
+                                                                      ".",
+                                                                      ","
+                                                                  );
+                                                    })()}{" "}
+                                                    jam
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                    Role:
+                                                </p>
+                                                <p className="text-purple-600 dark:text-purple-400 font-medium">
+                                                    Assistant Editor
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                            {/* Assistants - Simple List (untuk role all atau fotografer, bukan assist) */}
+                            {!["assist", "editorAssist", "editor"].includes(filterRole) &&
+                                (filterRole === "all" ||
+                                    filterRole === "fotografer") &&
                                 selectedDetail.assists &&
                                 selectedDetail.assists.length > 0 && (
                                     <div>
                                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                                            Assistant:
+                                            Assistant Fotografer:
                                         </p>
                                         {selectedDetail.assists?.map(
                                             (assist, index) => (
@@ -408,43 +688,86 @@ const Laporan = ({ stats }) => {
                                     </div>
                                 )}
 
-                            {/* Editor & Jam - One Row */}
-                            {(filterRole === "all" ||
-                                filterRole === "editor") && (
-                                <div className="grid grid-cols-2 gap-4">
+                            {/* Editor & Jam - One Row (tidak tampil untuk role assist atau editorAssist atau editor) */}
+                            {!["assist", "editorAssist", "editor"].includes(filterRole) &&
+                                (filterRole === "all" ||
+                                    filterRole === "editor") && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                Editor:
+                                            </p>
+                                            <p>
+                                                {selectedDetail.editor?.nama ||
+                                                    "-"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                                                Jam Editor:
+                                            </p>
+                                            <p>
+                                                {selectedDetail.jamEditor !=
+                                                null
+                                                    ? (() => {
+                                                          const jam =
+                                                              selectedDetail.jamEditor;
+                                                          return parseFloat(
+                                                              jam
+                                                          ) %
+                                                              1 ===
+                                                              0
+                                                              ? parseInt(jam)
+                                                              : jam
+                                                                    .toString()
+                                                                    .replace(
+                                                                        ".",
+                                                                        ","
+                                                                    );
+                                                      })() + " jam"
+                                                    : "-"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                            {/* Editor Assist list - untuk role all atau editor */}
+                            {!["assist", "editorAssist", "editor"].includes(filterRole) &&
+                                (filterRole === "all" ||
+                                    filterRole === "editor") &&
+                                selectedDetail.editor_assists &&
+                                selectedDetail.editor_assists.length > 0 && (
                                     <div>
                                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                                            Editor:
+                                            Assistant Editor:
                                         </p>
-                                        <p>
-                                            {selectedDetail.editor?.nama || "-"}
-                                        </p>
+                                        {selectedDetail.editor_assists.map(
+                                            (assist, index) => (
+                                                <p key={index} className="ml-2">
+                                                    •{" "}
+                                                    {assist.editor?.nama || "-"}{" "}
+                                                    (
+                                                    {(() => {
+                                                        const jam =
+                                                            assist.jamAssist ??
+                                                            0;
+                                                        return parseFloat(jam) %
+                                                            1 ===
+                                                            0
+                                                            ? parseInt(jam)
+                                                            : jam
+                                                                  .toString()
+                                                                  .replace(
+                                                                      ".",
+                                                                      ","
+                                                                  );
+                                                    })()}{" "}
+                                                    jam )
+                                                </p>
+                                            )
+                                        )}
                                     </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                                            Jam Editor:
-                                        </p>
-                                        <p>
-                                            {selectedDetail.jamEditor != null
-                                                ? (() => {
-                                                      const jam =
-                                                          selectedDetail.jamEditor;
-                                                      return parseFloat(jam) %
-                                                          1 ===
-                                                          0
-                                                          ? parseInt(jam)
-                                                          : jam
-                                                                .toString()
-                                                                .replace(
-                                                                    ".",
-                                                                    ","
-                                                                );
-                                                  })() + " jam"
-                                                : "-"}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
+                                )}
 
                             {/* Other Info */}
                             <div>
@@ -464,56 +787,59 @@ const Laporan = ({ stats }) => {
                                 </p>
                             </div>
 
-                            {/* Drive Links */}
-                            {(filterRole === "all" ||
-                                filterRole === "fotografer") && (
-                                <div>
-                                    <p className="font-medium text-gray-900 dark:text-gray-100">
-                                        Link Drive Fotografer:
-                                    </p>
-                                    {selectedDetail.linkGdriveFotografer ? (
-                                        <a
-                                            href={
-                                                selectedDetail.linkGdriveFotografer
-                                            }
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
-                                        >
-                                            Buka Link
-                                        </a>
-                                    ) : (
-                                        <p className="text-gray-500">
-                                            Tidak ada link
+                            {/* Drive Links - tidak tampil untuk role assist atau editorAssist */}
+                            {!["assist", "editorAssist"].includes(filterRole) &&
+                                (filterRole === "all" ||
+                                    filterRole === "fotografer" ||
+                                    filterRole === "editor") && (
+                                    <div>
+                                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                                            Link Drive Fotografer:
                                         </p>
-                                    )}
-                                </div>
-                            )}
+                                        {selectedDetail.linkGdriveFotografer ? (
+                                            <a
+                                                href={
+                                                    selectedDetail.linkGdriveFotografer
+                                                }
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
+                                            >
+                                                Buka Link
+                                            </a>
+                                        ) : (
+                                            <p className="text-gray-500">
+                                                Tidak ada link
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
 
-                            {(filterRole === "all" ||
-                                filterRole === "editor") && (
-                                <div>
-                                    <p className="font-medium text-gray-900 dark:text-gray-100">
-                                        Link Drive Editor:
-                                    </p>
-                                    {selectedDetail.linkGdriveEditor ? (
-                                        <a
-                                            href={
-                                                selectedDetail.linkGdriveEditor
-                                            }
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
-                                        >
-                                            Buka Link
-                                        </a>
-                                    ) : (
-                                        <p className="text-gray-500">
-                                            Tidak ada link
+                            {!["assist", "editorAssist"].includes(filterRole) &&
+                                (filterRole === "all" ||
+                                    filterRole === "editor") && (
+                                    <div>
+                                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                                            Link Drive Editor:
                                         </p>
-                                    )}
-                                </div>
-                            )}
+                                        {selectedDetail.linkGdriveEditor ? (
+                                            <a
+                                                href={
+                                                    selectedDetail.linkGdriveEditor
+                                                }
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
+                                            >
+                                                Buka Link
+                                            </a>
+                                        ) : (
+                                            <p className="text-gray-500">
+                                                Tidak ada link
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                         </div>
 
                         <div className="flex justify-end mt-6">

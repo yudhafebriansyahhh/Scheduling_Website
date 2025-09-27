@@ -14,7 +14,10 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::apiResource('schedule',ScheduleController::class);
-    Route::apiResource('profil', ProfileController::class);
+    // Route::apiResource('profil', ProfileController::class);
+    Route::get('profil', [ProfileController::class,'index']);
+    Route::post('profil/{id}', [ProfileController::class, 'update']);
+
 
 });
 // Route::get('/user', function (Request $request) {
