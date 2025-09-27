@@ -13,125 +13,121 @@ class ScheduleController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-    {
-        $user = auth()->user(); // user yang sedang login
+{
+    $user = auth()->user(); // user yang sedang login
 
-        if ($user->role === 'fotografer') {
-            $fotografer = \App\Models\Fotografer::where('user_id', $user->id)->first();
-            if (!$fotografer) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Fotografer tidak ditemukan untuk user ini'
-                ], 404);
-            }
-
-            // Ambil ID schedule dimana user adalah fotografer utama
-            $mainScheduleIds = Schedule::where('fotografer_id', $fotografer->id)->pluck('id');
-            
-            // Ambil ID schedule dimana user adalah assist fotografer
-            $assistScheduleIds = \App\Models\ScheduleFotograferAssist::where('fotografer_id', $fotografer->id)
-                ->pluck('schedule_id');
-            
-            // Gabungkan keduanya
-            $allScheduleIds = $mainScheduleIds->merge($assistScheduleIds)->unique();
-
-            $query = Schedule::select('id','tanggal','jamMulai','jamSelesai','namaEvent','fotografer_id','editor_id','catatan',
-                'linkGdriveFotografer','linkGdriveEditor')
-                ->whereIn('id', $allScheduleIds);
-
-        } elseif ($user->role === 'editor') {
-            $editor = \App\Models\Editor::where('user_id', $user->id)->first();
-            if (!$editor) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Editor tidak ditemukan untuk user ini'
-                ], 404);
-            }
-
-            // Ambil ID schedule dimana user adalah editor utama
-            $mainScheduleIds = Schedule::where('editor_id', $editor->id)->pluck('id');
-            
-            // Ambil ID schedule dimana user adalah assist editor
-            $assistScheduleIds = \App\Models\ScheduleEditorAssist::where('editor_id', $editor->id)
-                ->pluck('schedule_id');
-            
-            // Gabungkan keduanya
-            $allScheduleIds = $mainScheduleIds->merge($assistScheduleIds)->unique();
-
-            $query = Schedule::select('id','tanggal','jamMulai','jamSelesai','namaEvent','fotografer_id','editor_id','catatan',
-                'linkGdriveFotografer','linkGdriveEditor')
-                ->whereIn('id', $allScheduleIds);
-
-        } elseif ($user->role === 'admin') {
-            // admin bisa lihat semua
-            $query = Schedule::select('id','tanggal','jamMulai','jamSelesai','namaEvent','fotografer_id','editor_id','catatan',
-                'linkGdriveFotografer','linkGdriveEditor');
-        } else {
+    if ($user->role === 'fotografer') {
+        $fotografer = \App\Models\Fotografer::where('user_id', $user->id)->first();
+        if (!$fotografer) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Role tidak dikenali'
-            ], 403);
+                'message' => 'Fotografer tidak ditemukan untuk user ini'
+            ], 404);
         }
 
-        $schedules = $query
-            ->orderBy('tanggal', 'desc')
-            ->orderBy('jamMulai', 'desc')
-            ->get();
+        $mainScheduleIds = Schedule::where('fotografer_id', $fotografer->id)->pluck('id');
+        $assistScheduleIds = \App\Models\ScheduleFotograferAssist::where('fotografer_id', $fotografer->id)
+            ->pluck('schedule_id');
+        $allScheduleIds = $mainScheduleIds->merge($assistScheduleIds)->unique();
 
-        // Format data
-        $formattedData = $schedules->map(function ($schedule) use ($user) {
-            $scheduleData = [
-                'id' => $schedule->id,
-                'tanggal' => date('Y-m-d', strtotime($schedule->tanggal)),
-                'jamMulai' => Carbon::parse($schedule->jamMulai)->format('H:i'),
-                'jamSelesai' => Carbon::parse($schedule->jamSelesai)->format('H:i'),
-                'namaEvent' => $schedule->namaEvent,
-                'fotografer_id' => $schedule->fotografer_id,
-                'editor_id' => $schedule->editor_id,
-                'catatan' => $schedule->catatan,
-                'linkGdriveFotografer' => $schedule->linkGdriveFotografer,
-                'linkGdriveEditor' => $schedule->linkGdriveEditor,
-            ];
+        $query = Schedule::select(
+            'id','tanggal','jamMulai','jamSelesai','namaEvent','fotografer_id','editor_id','catatan',
+            'linkGdriveFotografer','linkGdriveEditor','lapangan','jamFotografer','jamEditor'
+        )->whereIn('id', $allScheduleIds);
 
-            if ($user->role === 'fotografer') {
-                $fotografer = \App\Models\Fotografer::where('user_id', $user->id)->first();
-                if ($schedule->fotografer_id == $fotografer->id) {
-                    $scheduleData['user_role_in_schedule'] = 'fotografer_utama';
-                } else {
-                    $assistData = \App\Models\ScheduleFotograferAssist::where('schedule_id', $schedule->id)
-                        ->where('fotografer_id', $fotografer->id)
-                        ->first();
-                    if ($assistData) {
-                        $scheduleData['user_role_in_schedule'] = 'fotografer_assist';
-                        $scheduleData['jam_assist'] = Carbon::parse($assistData->jamAssist)->format('H:i');
-                    }
-                }
-            }
+    } elseif ($user->role === 'editor') {
+        $editor = \App\Models\Editor::where('user_id', $user->id)->first();
+        if (!$editor) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Editor tidak ditemukan untuk user ini'
+            ], 404);
+        }
 
-            if ($user->role === 'editor') {
-                $editor = \App\Models\Editor::where('user_id', $user->id)->first();
-                if ($schedule->editor_id == $editor->id) {
-                    $scheduleData['user_role_in_schedule'] = 'editor_utama';
-                } else {
-                    $assistData = \App\Models\ScheduleEditorAssist::where('schedule_id', $schedule->id)
-                        ->where('editor_id', $editor->id)
-                        ->first();
-                    if ($assistData) {
-                        $scheduleData['user_role_in_schedule'] = 'editor_assist';
-                        $scheduleData['jam_assist'] = Carbon::parse($assistData->jamAssist)->format('H:i');
-                    }
-                }
-            }
+        $mainScheduleIds = Schedule::where('editor_id', $editor->id)->pluck('id');
+        $assistScheduleIds = \App\Models\ScheduleEditorAssist::where('editor_id', $editor->id)
+            ->pluck('schedule_id');
+        $allScheduleIds = $mainScheduleIds->merge($assistScheduleIds)->unique();
 
-            return $scheduleData;
-        });
+        $query = Schedule::select(
+            'id','tanggal','jamMulai','jamSelesai','namaEvent','fotografer_id','editor_id','catatan',
+            'linkGdriveFotografer','linkGdriveEditor','lapangan','jamFotografer','jamEditor'
+        )->whereIn('id', $allScheduleIds);
 
+    } elseif ($user->role === 'admin') {
+        $query = Schedule::select(
+            'id','tanggal','jamMulai','jamSelesai','namaEvent','fotografer_id','editor_id','catatan',
+            'linkGdriveFotografer','linkGdriveEditor','lapangan','jamFotografer','jamEditor'
+        );
+    } else {
         return response()->json([
-            'status' => 'success',
-            'user' => $user,
-            'data' => $formattedData
-        ]);
+            'status' => 'error',
+            'message' => 'Role tidak dikenali'
+        ], 403);
     }
+
+    $schedules = $query->orderBy('tanggal', 'desc')
+        ->orderBy('jamMulai', 'desc')
+        ->get();
+
+    $formattedData = $schedules->map(function ($schedule) use ($user) {
+        $scheduleData = [
+            'id' => $schedule->id,
+            'tanggal' => $schedule->tanggal->format('Y-m-d'),
+            'jamMulai' => Carbon::parse($schedule->jamMulai)->format('H:i'),
+            'jamSelesai' => Carbon::parse($schedule->jamSelesai)->format('H:i'),
+            'namaEvent' => $schedule->namaEvent,
+            'fotografer_id' => $schedule->fotografer_id,
+            'editor_id' => $schedule->editor_id,
+            'catatan' => $schedule->catatan,
+            'linkGdriveFotografer' => $schedule->linkGdriveFotografer,
+            'linkGdriveEditor' => $schedule->linkGdriveEditor,
+            'lapangan' => $schedule->lapangan,       // <-- Tambahan field lapangan
+            'jamFotografer' => $schedule->jamFotografer,
+            'jamEditor' => $schedule->jamEditor
+        ];
+
+        // Role spesifik
+        if ($user->role === 'fotografer') {
+            $fotografer = \App\Models\Fotografer::where('user_id', $user->id)->first();
+            if ($schedule->fotografer_id == $fotografer->id) {
+                $scheduleData['user_role_in_schedule'] = 'fotografer_utama';
+            } else {
+                $assistData = \App\Models\ScheduleFotograferAssist::where('schedule_id', $schedule->id)
+                    ->where('fotografer_id', $fotografer->id)
+                    ->first();
+                if ($assistData) {
+                    $scheduleData['user_role_in_schedule'] = 'fotografer_assist';
+                    $scheduleData['jam_assist'] = Carbon::parse($assistData->jamAssist)->format('H:i');
+                }
+            }
+        }
+
+        if ($user->role === 'editor') {
+            $editor = \App\Models\Editor::where('user_id', $user->id)->first();
+            if ($schedule->editor_id == $editor->id) {
+                $scheduleData['user_role_in_schedule'] = 'editor_utama';
+            } else {
+                $assistData = \App\Models\ScheduleEditorAssist::where('schedule_id', $schedule->id)
+                    ->where('editor_id', $editor->id)
+                    ->first();
+                if ($assistData) {
+                    $scheduleData['user_role_in_schedule'] = 'editor_assist';
+                    $scheduleData['jam_assist'] = Carbon::parse($assistData->jamAssist)->format('H:i');
+                }
+            }
+        }
+
+        return $scheduleData;
+    });
+
+    return response()->json([
+        'status' => 'success',
+        'user' => $user,
+        'data' => $formattedData
+    ]);
+}
+
 
     /**
      * Store a newly created resource in storage.
