@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, X } from "lucide-react";
 import Sidebar from "../../../Components/Sidebar";
 import CustomDateInput from "../../../Components/CustomDateInput";
 import CustomTimeInput from "../../../Components/CustomTimeInput";
+import Swal from "sweetalert2";
 
 const TambahSchedule = () => {
     const { fotografers, editors } = usePage().props;
@@ -116,7 +117,19 @@ const TambahSchedule = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         post(route("schedule.store"), {
-            onSuccess: () => reset(),
+            onSuccess: () => {
+                Swal.fire({
+                    icon: "success",
+                    title: "Berhasil!",
+                    text: "Berhasil menambahkan data schedule",
+                    timer: 3000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: "top-end",
+                }).then(() => {
+                    window.location.reload();
+                });
+            },
         });
     };
 
@@ -466,7 +479,8 @@ const TambahSchedule = () => {
                                         >
                                             <div className="flex items-center justify-between mb-4">
                                                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                    Assist Fotografer {index + 1}
+                                                    Assist Fotografer{" "}
+                                                    {index + 1}
                                                 </h4>
                                                 <button
                                                     type="button"

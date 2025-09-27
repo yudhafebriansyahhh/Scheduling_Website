@@ -8,6 +8,7 @@ const FormModal = ({
   setFormData,
   handleSubmit,
   editingEditor,
+  editingFotografer,
   handleFileChange,
   removePhoto,
   isLoading = false
@@ -38,7 +39,8 @@ const FormModal = ({
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                {editingEditor ? 'Mengupdate...' : 'Menyimpan...'}
+                {editingEditor && (editingEditor ? "Mengupdate..." : "Menyimpan...")}
+                {editingFotografer && (editingFotografer ? "Mengupdate..." : "Menyimpan...")}
               </p>
             </div>
           </div>
@@ -169,16 +171,20 @@ const FormModal = ({
                 type="submit"
                 className="flex-1 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isLoading}
-              >
+                >
                 {isLoading ? (
-                  <div className="flex items-center justify-center">
+                    <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {editingEditor ? 'Menyimpan...' : 'Menambah...'}
-                  </div>
+                    {editingEditor && (editingEditor ? "Menyimpan..." : "Menambah...")}
+                    {editingFotografer && (editingFotografer ? "Menyimpan..." : "Menambah...")}
+                    </div>
                 ) : (
-                  editingEditor ? 'Simpan' : 'Tambah'
+                    <>
+                    {editingEditor && (editingEditor ? "Simpan" : "Tambah")}
+                    {editingFotografer && (editingFotografer ? "Simpan" : "Tambah")}
+                    </>
                 )}
-              </button>
+                </button>
               <button
                 type="button"
                 onClick={onClose}

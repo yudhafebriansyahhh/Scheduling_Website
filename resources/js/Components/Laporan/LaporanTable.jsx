@@ -1,6 +1,7 @@
 import React from 'react';
 import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, FileText } from 'lucide-react';
 import { router } from '@inertiajs/react';
+import Swal from 'sweetalert2';
 
 const LaporanTable = ({
   filteredData,
@@ -21,11 +22,56 @@ const LaporanTable = ({
     router.visit(`/schedule/${item.id}/edit`);
   };
 
-  const handleDelete = (item) => {
-    if (confirm("Yakin hapus schedule ini?")) {
-      router.delete(`/schedule/${item.id}`);
-    }
-  };
+
+  const handleDelete = async (item) => {
+  const result = await Swal.fire({
+    title: 'Apakah Anda yakin?',
+    html: `Anda akan menghapus event:<br><strong>${item.namaEvent}</strong>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Ya, Hapus!',
+    cancelButtonText: 'Batal',
+    reverseButtons: true
+  });
+
+  if (result.isConfirmed) {
+    // Show loading
+    Swal.fire({
+      title: 'Menghapus...',
+      text: 'Mohon tunggu sebentar',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    router.delete(`/schedule/${item.id}`, {
+      onSuccess: () => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Berhasil Dihapus!',
+          text: `Event ${item.namaEvent} telah dihapus`,
+          timer: 3000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+      },
+      onError: (errors) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal Menghapus!',
+          text: 'Terjadi kesalahan saat menghapus event',
+          confirmButtonText: 'OK'
+        });
+      }
+    });
+  }
+};
 
   // Format jam untuk display
   const formatJam = (jam) => {

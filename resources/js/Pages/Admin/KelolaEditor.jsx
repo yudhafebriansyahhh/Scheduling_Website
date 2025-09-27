@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { ArrowLeft, Search, Plus } from 'lucide-react';
 import Sidebar from '../../Components/Sidebar';
 import FormModal from '../../Components/FormModal';
+import Swal from 'sweetalert2';
 
 const KelolaEditor = ({ editors: initialEditors }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,6 +26,30 @@ const KelolaEditor = ({ editors: initialEditors }) => {
 
   // Data dari server
   const [editors, setEditors] = useState(initialEditors || []);
+
+  // SweetAlert2 untuk flash messages
+  useEffect(() => {
+    if (flash?.success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: flash.success,
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    }
+
+    if (flash?.error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: flash.error,
+        confirmButtonText: 'OK'
+      });
+    }
+  }, [flash]);
 
   // Filter pencarian
   const filteredEditors = editors.filter(editor =>
@@ -142,34 +167,90 @@ const KelolaEditor = ({ editors: initialEditors }) => {
     setShowEditModal(true);
   };
 
-  const handleDeleteEditor = (editor) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus editor ${editor.nama}?`)) {
+  const handleDeleteEditor = async (editor) => {
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      html: `Anda akan menghapus editor:<br><strong>${editor.nama}</strong>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+      // Show loading
+      Swal.fire({
+        title: 'Menghapus...',
+        text: 'Mohon tunggu sebentar',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       setIsLoading(true);
+
       router.delete(`/editor/${editor.id}`, {
         onSuccess: () => {
           setEditors(editors.filter(p => p.id !== editor.id));
           setIsLoading(false);
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil Dihapus!',
+            text: `Editor ${editor.nama} telah dihapus`,
+            timer: 3000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          });
         },
-        onError: () => {
+        onError: (errors) => {
           setIsLoading(false);
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menghapus!',
+            text: 'Terjadi kesalahan saat menghapus editor',
+            confirmButtonText: 'OK'
+          });
         }
       });
     }
   };
 
-  // 🔥 Perbaikan utama ada disini
+  // Handle submit form
   const handleSubmit = () => {
     // Validasi form
     if (!formData.nama.trim()) {
-      alert('Nama harus diisi!');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: 'Nama harus diisi!',
+        confirmButtonText: 'OK'
+      });
       return;
     }
     if (!formData.email.trim()) {
-      alert('Email harus diisi!');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: 'Email harus diisi!',
+        confirmButtonText: 'OK'
+      });
       return;
     }
     if (!formData.no_hp.trim()) {
-      alert('No HP harus diisi!');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: 'No HP harus diisi!',
+        confirmButtonText: 'OK'
+      });
       return;
     }
 
@@ -203,15 +284,32 @@ const KelolaEditor = ({ editors: initialEditors }) => {
           setEditingEditor(null);
           resetForm();
           setIsLoading(false);
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Data editor berhasil diupdate',
+            timer: 3000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          });
         },
         onError: (errors) => {
           console.error('Update error:', errors);
-          if (errors.email) {
-            alert('Error: ' + errors.email[0]);
-          } else {
-            alert('Terjadi kesalahan saat mengupdate data');
-          }
           setIsLoading(false);
+
+          let errorMessage = 'Terjadi kesalahan saat mengupdate data';
+          if (errors.email) {
+            errorMessage = errors.email[0];
+          }
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Update!',
+            text: errorMessage,
+            confirmButtonText: 'OK'
+          });
         }
       });
     } else {
@@ -219,30 +317,39 @@ const KelolaEditor = ({ editors: initialEditors }) => {
       router.post('/editor', payload, {
         forceFormData: true,
         onSuccess: (page) => {
-          // Refresh halaman untuk mendapat data terbaru
-          // Atau bisa juga ambil data dari response jika backend mengirimkan data editor baru
-          window.location.reload();
-
-          // Alternatif tanpa reload (tapi butuh data dari backend):
-          // const newEditor = page.props.newEditor; // Jika backend kirim data editor baru
-          // if (newEditor) {
-          //   setEditors([...editors, newEditor]);
-          // }
-
           setShowAddModal(false);
           resetForm();
           setIsLoading(false);
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Editor baru berhasil ditambahkan',
+            timer: 3000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          }).then(() => {
+            window.location.reload();
+          });
         },
         onError: (errors) => {
           console.error('Create error:', errors);
-          if (errors.email) {
-            alert('Error: ' + errors.email[0]);
-          } else if (errors.nama) {
-            alert('Error: ' + errors.nama[0]);
-          } else {
-            alert('Terjadi kesalahan saat menambah data');
-          }
           setIsLoading(false);
+
+          let errorMessage = 'Terjadi kesalahan saat menambah data';
+          if (errors.email) {
+            errorMessage = errors.email[0];
+          } else if (errors.nama) {
+            errorMessage = errors.nama[0];
+          }
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menambah!',
+            text: errorMessage,
+            confirmButtonText: 'OK'
+          });
         }
       });
     }
@@ -270,11 +377,21 @@ const KelolaEditor = ({ editors: initialEditors }) => {
     const file = e.target.files[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        alert('Harap pilih file gambar yang valid (JPG, PNG, GIF, dll)');
+        Swal.fire({
+          icon: 'error',
+          title: 'File Tidak Valid!',
+          text: 'Harap pilih file gambar yang valid (JPG, PNG, GIF)',
+          confirmButtonText: 'OK'
+        });
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Ukuran file terlalu besar. Maksimal 5MB');
+      if (file.size > 2 * 1024 * 1024) {
+        Swal.fire({
+          icon: 'error',
+          title: 'File Terlalu Besar!',
+          text: 'Ukuran file maksimal 5MB',
+          confirmButtonText: 'OK'
+        });
         return;
       }
       const reader = new FileReader();
@@ -332,18 +449,6 @@ const KelolaEditor = ({ editors: initialEditors }) => {
             </div>
 
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Kelola Data Editor</h1>
-
-            {/* Flash message */}
-            {flash?.success && (
-              <div className="mb-4 p-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded-lg">
-                {flash.success}
-              </div>
-            )}
-            {flash?.error && (
-              <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 rounded-lg">
-                {flash.error}
-              </div>
-            )}
 
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">

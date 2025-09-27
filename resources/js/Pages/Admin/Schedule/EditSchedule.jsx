@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Head, usePage, useForm } from "@inertiajs/react";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import Sidebar from "../../../Components/Sidebar";
+import Swal from "sweetalert2";
 import CustomDateInput from "../../../Components/CustomDateInput";
 import CustomTimeInput from "../../../Components/CustomTimeInput";
 
@@ -143,7 +144,17 @@ const EditSchedule = () => {
         put(route("schedule.update", schedule.id), {
             preserveScroll: true,
             onSuccess: () => {
-                // Optional: tampilkan notifikasi sukses atau redirect
+                Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: 'Berhasil merubah data schedule',
+                            timer: 3000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                          }).then(() => {
+                            window.location.reload();
+                          });
             },
             onError: (errors) => {
                 console.log('Validation errors:', errors);
@@ -184,9 +195,6 @@ const EditSchedule = () => {
                         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                             Edit Schedule
                         </h1>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                            Edit informasi schedule. Jam dan tanggal akan tetap tersimpan kecuali Anda mengubahnya secara manual.
-                        </p>
                     </div>
 
                     {/* Form Container */}
@@ -256,9 +264,6 @@ const EditSchedule = () => {
                                             {errors.jamSelesai}
                                         </div>
                                     )}
-                                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        Jam selesai akan tetap tersimpan kecuali diubah manual
-                                    </div>
                                 </div>
                             </div>
 
