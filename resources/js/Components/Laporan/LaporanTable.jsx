@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Edit, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, FileText } from 'lucide-react';
+import { Eye, Edit, Trash2, FileText } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import Swal from 'sweetalert2';
 
@@ -22,56 +22,55 @@ const LaporanTable = ({
     router.visit(`/schedule/${item.id}/edit`);
   };
 
-
   const handleDelete = async (item) => {
-  const result = await Swal.fire({
-    title: 'Apakah Anda yakin?',
-    html: `Anda akan menghapus event:<br><strong>${item.namaEvent}</strong>`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#6b7280',
-    confirmButtonText: 'Ya, Hapus!',
-    cancelButtonText: 'Batal',
-    reverseButtons: true
-  });
-
-  if (result.isConfirmed) {
-    // Show loading
-    Swal.fire({
-      title: 'Menghapus...',
-      text: 'Mohon tunggu sebentar',
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      showConfirmButton: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      html: `Anda akan menghapus event:<br><strong>${item.namaEvent}</strong>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      reverseButtons: true
     });
 
-    router.delete(`/schedule/${item.id}`, {
-      onSuccess: () => {
-        Swal.fire({
-          icon: 'success',
-          title: 'Berhasil Dihapus!',
-          text: `Event ${item.namaEvent} telah dihapus`,
-          timer: 3000,
-          showConfirmButton: false,
-          toast: true,
-          position: 'top-end'
-        });
-      },
-      onError: (errors) => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Gagal Menghapus!',
-          text: 'Terjadi kesalahan saat menghapus event',
-          confirmButtonText: 'OK'
-        });
-      }
-    });
-  }
-};
+    if (result.isConfirmed) {
+      // Show loading
+      Swal.fire({
+        title: 'Menghapus...',
+        text: 'Mohon tunggu sebentar',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      router.delete(`/schedule/${item.id}`, {
+        onSuccess: () => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil Dihapus!',
+            text: `Event ${item.namaEvent} telah dihapus`,
+            timer: 3000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          });
+        },
+        onError: (errors) => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menghapus!',
+            text: 'Terjadi kesalahan saat menghapus event',
+            confirmButtonText: 'OK'
+          });
+        }
+      });
+    }
+  };
 
   // Format jam untuk display
   const formatJam = (jam) => {
@@ -196,19 +195,17 @@ const LaporanTable = ({
     );
   };
 
-  // Table headers based on filterRole - DIPERBAIKI
+  // Table headers based on filterRole
   const getTableHeaders = () => {
     const baseHeaders = ['No', 'Info Event', 'Waktu'];
 
     if (filterRole === 'fotografer') {
       return [...baseHeaders, 'Fotografer', 'Status', 'Aksi'];
     } else if (filterRole === 'editor') {
-      // PERUBAHAN: Header untuk filter editor
-      return [...baseHeaders, 'Editor Utama', 'Assistant', 'Status', 'Aksi'];
+      return [...baseHeaders, 'Editor', 'Status', 'Aksi'];
     } else if (filterRole === 'assist') {
       return [...baseHeaders, 'Fotografer Utama', 'Assistant', 'Status', 'Aksi'];
     } else if (filterRole === 'editorAssist') {
-      // PERUBAHAN: Header untuk filter editorAssist
       return [...baseHeaders, 'Editor Utama', 'Assistant', 'Status', 'Aksi'];
     } else {
       // Role 'all'
@@ -302,7 +299,7 @@ const LaporanTable = ({
                             {item.editor.nama}
                           </div>
                           <div className="text-orange-600 dark:text-orange-400 text-xs">
-                            {formatHours(item.jamEditor)} jam
+                            {formatHours(item.jamEditor)} match
                           </div>
                         </div>
                       ) : (
@@ -313,26 +310,15 @@ const LaporanTable = ({
                     </td>
                   )}
 
-                  {/* PERUBAHAN: Editor Utama - for editor role */}
+                  {/* Editor - for editor role only */}
                   {filterRole === 'editor' && (
                     <td className="px-6 py-4">
                       <div className="text-sm">
                         <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {item.mainEditor?.nama || item.editor?.nama || '-'}
+                          {item.editor?.nama || '-'}
                         </div>
-                      </div>
-                    </td>
-                  )}
-
-                  {/* PERUBAHAN: Assistant Editor - for editor role */}
-                  {filterRole === 'editor' && (
-                    <td className="px-6 py-4">
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {item.assistEditor?.nama || '-'}
-                        </div>
-                        <div className="text-purple-600 dark:text-purple-400 text-xs">
-                          {formatHours(item.jamAssist)} jam
+                        <div className="text-orange-600 dark:text-orange-400 text-xs">
+                          {formatHours(item.jamEditor)} match
                         </div>
                       </div>
                     </td>
@@ -357,13 +343,13 @@ const LaporanTable = ({
                           {item.assistFotografer?.nama || '-'}
                         </div>
                         <div className="text-blue-600 dark:text-blue-400 text-xs">
-                          {formatHours(item.jamAssist)} jam
+                          {formatHours(item.jamAssist)} sesi
                         </div>
                       </div>
                     </td>
                   )}
 
-                  {/* PERUBAHAN: Editor Utama - for editorAssist role */}
+                  {/* Editor Utama - for editorAssist role */}
                   {filterRole === 'editorAssist' && (
                     <td className="px-6 py-4">
                       <div className="text-sm">
@@ -374,7 +360,7 @@ const LaporanTable = ({
                     </td>
                   )}
 
-                  {/* PERUBAHAN: Assistant Editor - for editorAssist role */}
+                  {/* Assistant Editor - for editorAssist role */}
                   {filterRole === 'editorAssist' && (
                     <td className="px-6 py-4">
                       <div className="text-sm">
@@ -382,7 +368,7 @@ const LaporanTable = ({
                           {item.assistEditor?.nama || '-'}
                         </div>
                         <div className="text-purple-600 dark:text-purple-400 text-xs">
-                          {formatHours(item.jamAssist)} jam
+                          {formatHours(item.jamAssist)} match
                         </div>
                       </div>
                     </td>
@@ -425,7 +411,7 @@ const LaporanTable = ({
           </table>
         </div>
 
-        {/* Mobile Cards - PERUBAHAN JUGA DI SINI */}
+        {/* Mobile Cards */}
         <div className="lg:hidden space-y-4 p-4">
           {paginatedData.map((item, index) => (
             <div key={`${item.id}-mobile-${index}`} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
@@ -466,37 +452,25 @@ const LaporanTable = ({
                       {item.editor.nama}
                     </div>
                     <div className="text-xs text-orange-600 dark:text-orange-400">
-                      {formatHours(item.jamEditor)}h
+                      {formatHours(item.jamEditor)} match
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* PERUBAHAN: Mobile view untuk editor filter */}
+              {/* Mobile view untuk editor filter */}
               {filterRole === 'editor' && (
-                <>
-                  <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Editor Utama:</span>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {item.mainEditor?.nama || item.editor?.nama || '-'}
-                      </div>
+                <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Editor:</span>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {item.editor?.nama || '-'}
+                    </div>
+                    <div className="text-xs text-orange-600 dark:text-orange-400">
+                      {formatHours(item.jamEditor)} match
                     </div>
                   </div>
-                  {item.assistEditor?.nama && (
-                    <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Assistant Editor:</span>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {item.assistEditor.nama}
-                        </div>
-                        <div className="text-xs text-purple-600 dark:text-purple-400">
-                          {formatHours(item.jamAssist)}h
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
+                </div>
               )}
 
               {filterRole === 'assist' && (
@@ -519,7 +493,7 @@ const LaporanTable = ({
                           {item.assistFotografer.nama}
                         </div>
                         <div className="text-xs text-blue-600 dark:text-blue-400">
-                          {formatHours(item.jamAssist)}h
+                          {formatHours(item.jamAssist)} sesi
                         </div>
                       </div>
                     </div>
@@ -527,7 +501,7 @@ const LaporanTable = ({
                 </>
               )}
 
-              {/* PERUBAHAN: Mobile view untuk editorAssist filter */}
+              {/* Mobile view untuk editorAssist filter */}
               {filterRole === 'editorAssist' && (
                 <>
                   <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
@@ -546,7 +520,7 @@ const LaporanTable = ({
                           {item.assistEditor.nama}
                         </div>
                         <div className="text-xs text-purple-600 dark:text-purple-400">
-                          {formatHours(item.jamAssist)}h
+                          {formatHours(item.jamAssist)} match
                         </div>
                       </div>
                     </div>

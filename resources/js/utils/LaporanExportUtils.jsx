@@ -7,11 +7,11 @@ export const exportToCSV = (filteredData, filterRole = "all") => {
     if (filterRole === "fotografer") {
         headers.push("Fotografer", "Jam Kerja");
     } else if (filterRole === "editor") {
-        headers.push("Editor", "Jam Kerja");
+        headers.push("Editor", "Match Editor");
     } else if (filterRole === "assist") {
-        headers.push("Fotografer Utama", "Assistant", "Jam Assist");
+        headers.push("Fotografer Utama", "Assistant", "Sesi Assist");
     } else if (filterRole === "editorAssist") {
-        headers.push("Editor Utama", "Assistant Editor", "Jam Assist");
+        headers.push("Editor Utama", "Assistant Editor", "Match Assist");
     } else {
         headers.push("Fotografer", "Editor");
     }
@@ -47,7 +47,7 @@ export const exportToCSV = (filteredData, filterRole = "all") => {
             } else if (filterRole === "editor") {
                 row.push(
                     `"${item.editor?.nama || "-"}"`,
-                    `${formatJam(item.jamEditor)} jam`
+                    `${formatJam(item.jamEditor)} match`
                 );
             } else if (filterRole === "assist") {
                 row.push(
@@ -57,13 +57,13 @@ export const exportToCSV = (filteredData, filterRole = "all") => {
                         "-"
                     }"`,
                     `"${item.assistFotografer?.nama || "-"}"`,
-                    `${formatJam(item.jamAssist)} jam`
+                    `${formatJam(item.jamAssist)} sesi`
                 );
             } else if (filterRole === "editorAssist") {
                 row.push(
                     `"${item.mainEditor?.nama || item.editor?.nama || "-"}"`,
                     `"${item.assistEditor?.nama || "-"}"`,
-                    `${formatJam(item.jamAssist)} jam`
+                    `${formatJam(item.jamAssist)} match`
                 );
             } else {
                 row.push(
@@ -100,7 +100,9 @@ export const exportToCSV = (filteredData, filterRole = "all") => {
             ? "fotografer"
             : filterRole === "editor"
             ? "editor"
-            : "assistant";
+            : filterRole === "assist"
+            ? "assist-fotografer"
+            : "assist-editor";
     link.setAttribute(
         "download",
         `laporan_${roleText}_${new Date().toISOString().split("T")[0]}.csv`
@@ -141,7 +143,9 @@ export const exportToPDF = (
             ? "Fotografer"
             : filterRole === "editor"
             ? "Editor"
-            : "Assistant";
+            : filterRole === "assist"
+            ? "Assistant Fotografer"
+            : "Assistant Editor";
 
     // Table headers
     const getTableHeaders = () => {
@@ -185,7 +189,7 @@ export const exportToPDF = (
                                   item.editor.nama
                               }</div><div style="font-size:9px;">${formatJam(
                                   item.jamEditor
-                              )} jam</div>`
+                              )} match</div>`
                             : "-"
                     }</td>`;
                 } else if (filterRole === "assist") {
@@ -200,7 +204,7 @@ export const exportToPDF = (
                           item.assistFotografer.nama
                       }</div><div style="font-size:9px;">${formatJam(
                           item.jamAssist
-                      )} jam</div>`
+                      )} sesi</div>`
                     : "-"
             }</td>`;
                 } else if (filterRole === "editorAssist") {
@@ -213,7 +217,7 @@ export const exportToPDF = (
                           item.assistEditor.nama
                       }</div><div style="font-size:9px;">${formatJam(
                           item.jamAssist
-                      )} jam</div>`
+                      )} match</div>`
                     : "-"
             }</td>`;
                 } else {
@@ -228,7 +232,7 @@ export const exportToPDF = (
                           item.editor.nama
                       }</div><div style="font-size:9px;">${formatJam(
                           item.jamEditor
-                      )} jam</div>`
+                      )} match</div>`
                     : "-"
             }</td>`;
                 }
@@ -253,23 +257,23 @@ export const exportToPDF = (
         if (filterRole === "all")
             return `Total Jam Fotografer: ${formatJam(
                 summary.totalJamFotografer
-            )} jam | Total Jam Editor: ${formatJam(
+            )} jam | Total Match Editor: ${formatJam(
                 summary.totalJamEditor
-            )} jam`;
+            )} match`;
         if (filterRole === "fotografer")
             return `Total Jam Fotografer: ${formatJam(
                 summary.totalJamFotografer
             )} jam`;
         if (filterRole === "editor")
-            return `Total Jam Editor: ${formatJam(summary.totalJamEditor)} jam`;
+            return `Total Match Editor: ${formatJam(summary.totalJamEditor)} match`;
         if (filterRole === "assist")
-            return `Total Jam Assistant Fotografer: ${formatJam(
+            return `Total Sesi Assistant Fotografer: ${formatJam(
                 summary.totalJamAssist
-            )} jam`;
+            )} sesi`;
         if (filterRole === "editorAssist")
-            return `Total Jam Assistant Editor: ${formatJam(
-                summary.totalJamEditorAssist
-            )} jam`;
+            return `Total Match Assistant Editor: ${formatJam(
+                summary.totalJamAssist
+            )} match`;
 
         return "";
     };

@@ -48,11 +48,12 @@ const LaporanSummaryCards = ({ summary }) => {
         }
       ];
     } else if (filterRole === 'editor') {
+      // PERBAIKAN: Untuk role editor, gunakan totalJamEditor (bukan totalJamAssist)
       return [
         ...baseCards,
         {
-          title: "Total Jam Editor",
-          value: `${formatJam(totalJamEditor)} jam`,
+          title: "Total Match Editor",
+          value: `${formatJam(totalJamEditor)} match`,
           icon: Edit3,
           color: "bg-orange-500",
           cardClass: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
@@ -62,11 +63,22 @@ const LaporanSummaryCards = ({ summary }) => {
       return [
         ...baseCards,
         {
-          title: "Total Jam Assistant",
-          value: `${formatJam(totalJamAssist)} jam`,
+          title: "Total Sesi Assistant",
+          value: `${formatJam(totalJamAssist)} sesi`,
           icon: UserCheck,
           color: "bg-indigo-500",
           cardClass: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800"
+        }
+      ];
+    } else if (filterRole === 'editorAssist') {
+      return [
+        ...baseCards,
+        {
+          title: "Total Match Assistant",
+          value: `${formatJam(totalJamAssist)} match`,
+          icon: UserCheck,
+          color: "bg-purple-500",
+          cardClass: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
         }
       ];
     } else {
@@ -81,8 +93,8 @@ const LaporanSummaryCards = ({ summary }) => {
           cardClass: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
         },
         {
-          title: "Total Jam Editor",
-          value: `${formatJam(totalJamEditor)} jam`,
+          title: "Total Match Editor",
+          value: `${formatJam(totalJamEditor)} match`,
           icon: Edit3,
           color: "bg-orange-500",
           cardClass: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"

@@ -17,19 +17,19 @@ const EditSchedule = () => {
         namaEvent: schedule.namaEvent || "",
         fotografer_id: schedule.fotografer_id || "",
         editor_id: schedule.editor_id || "",
-        jamEditor: schedule.jamEditor || "",
+        jamEditor: schedule.jamEditor ? parseInt(schedule.jamEditor) : "",
         lapangan: schedule.lapangan || "",
         catatan: schedule.catatan || "",
         assistants: schedule.assistants
             ? schedule.assistants.map((assist) => ({
                   fotografer_id: assist.fotografer_id,
-                  jamAssist: assist.jamAssist,
+                  jamAssist: assist.jamAssist ? parseInt(assist.jamAssist) : "",
               }))
             : [],
         assistEditors: schedule.assistEditors
             ? schedule.assistEditors.map((assist) => ({
                   editor_id: assist.editor_id,
-                  jamAssist: assist.jamAssist,
+                  jamAssist: assist.jamAssist ? parseInt(assist.jamAssist) : "",
               }))
             : [],
     });
@@ -386,15 +386,14 @@ const EditSchedule = () => {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Jam Editor
+                                                Match Editor
                                             </label>
                                             <input
                                                 type="number"
-                                                step="0.5"
-                                                min="0"
+                                                min="1"
                                                 value={data.jamEditor}
                                                 onChange={(e) => setData("jamEditor", e.target.value)}
-                                                placeholder="0.0"
+                                                placeholder="1"
                                                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                             />
                                             {errors.jamEditor && (
@@ -458,12 +457,11 @@ const EditSchedule = () => {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Jam Assist
+                                                Match Assist
                                             </label>
                                             <input
                                                 type="number"
-                                                step="0.5"
-                                                min="0"
+                                                min="1"
                                                 value={assist.jamAssist}
                                                 onChange={(e) =>
                                                     updateAssistEditor(
@@ -472,7 +470,7 @@ const EditSchedule = () => {
                                                         e.target.value
                                                     )
                                                 }
-                                                placeholder="0.0"
+                                                placeholder="1"
                                                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                             />
                                         </div>
@@ -525,12 +523,11 @@ const EditSchedule = () => {
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                    Jam Assist
+                                                    Sesi Assist
                                                 </label>
                                                 <input
                                                     type="number"
-                                                    step="0.5"
-                                                    min="0"
+                                                    min="1"
                                                     value={assistant.jamAssist || ""}
                                                     onChange={(e) =>
                                                         updateAssistant(
@@ -539,7 +536,7 @@ const EditSchedule = () => {
                                                             e.target.value
                                                         )
                                                     }
-                                                    placeholder="0.0"
+                                                    placeholder="1"
                                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                                 />
                                             </div>
