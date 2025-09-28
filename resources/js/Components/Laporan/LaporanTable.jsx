@@ -17,15 +17,24 @@ const LaporanTable = ({
   const endIndex = startIndex + itemsPerPage;
   const paginatedData = filteredData.slice(startIndex, endIndex);
 
-  // Handler functions seperti di ScheduleTable
+  // Handler functions
   const handleEdit = (item) => {
-    router.visit(`/schedule/${item.id}/edit`);
+    if (filterRole === 'assist') {
+      // Handle edit assist (implement sesuai route yang ada)
+      router.visit(`/assist/${item.id}/edit`);
+    } else {
+      router.visit(`/schedule/${item.id}/edit`);
+    }
   };
 
   const handleDelete = async (item) => {
+    const itemName = filterRole === 'assist'
+      ? `sesi assist ${item.nama}`
+      : `event ${item.namaEvent}`;
+
     const result = await Swal.fire({
       title: 'Apakah Anda yakin?',
-      html: `Anda akan menghapus event:<br><strong>${item.namaEvent}</strong>`,
+      html: `Anda akan menghapus ${itemName}`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
@@ -48,12 +57,16 @@ const LaporanTable = ({
         }
       });
 
-      router.delete(`/schedule/${item.id}`, {
+      const deleteUrl = filterRole === 'assist'
+        ? `/assist/${item.id}`
+        : `/schedule/${item.id}`;
+
+      router.delete(deleteUrl, {
         onSuccess: () => {
           Swal.fire({
             icon: 'success',
             title: 'Berhasil Dihapus!',
-            text: `Event ${item.namaEvent} telah dihapus`,
+            text: `${itemName} telah dihapus`,
             timer: 3000,
             showConfirmButton: false,
             toast: true,
@@ -64,7 +77,7 @@ const LaporanTable = ({
           Swal.fire({
             icon: 'error',
             title: 'Gagal Menghapus!',
-            text: 'Terjadi kesalahan saat menghapus event',
+            text: 'Terjadi kesalahan saat menghapus data',
             confirmButtonText: 'OK'
           });
         }
@@ -73,12 +86,6 @@ const LaporanTable = ({
   };
 
   // Format jam untuk display
-  const formatJam = (jam) => {
-    if (!jam) return '-';
-    const numJam = parseFloat(jam);
-    return numJam % 1 === 0 ? parseInt(numJam).toString() : jam.toString().replace('.', ',');
-  };
-
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', {
@@ -195,18 +202,18 @@ const LaporanTable = ({
     );
   };
 
-  // Table headers based on filterRole
+  // Table headers berdasarkan filterRole
   const getTableHeaders = () => {
+    if (filterRole === 'assist') {
+      return ['No', 'Nama', 'Tanggal', 'Jam Mulai', 'Jam Selesai', 'Status', 'Aksi'];
+    }
+
     const baseHeaders = ['No', 'Info Event', 'Waktu'];
 
     if (filterRole === 'fotografer') {
       return [...baseHeaders, 'Fotografer', 'Status', 'Aksi'];
     } else if (filterRole === 'editor') {
       return [...baseHeaders, 'Editor', 'Status', 'Aksi'];
-    } else if (filterRole === 'assist') {
-      return [...baseHeaders, 'Fotografer Utama', 'Assistant', 'Status', 'Aksi'];
-    } else if (filterRole === 'editorAssist') {
-      return [...baseHeaders, 'Editor Utama', 'Assistant', 'Status', 'Aksi'];
     } else {
       // Role 'all'
       return [...baseHeaders, 'Fotografer', 'Editor', 'Status', 'Aksi'];
@@ -249,162 +256,171 @@ const LaporanTable = ({
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedData.map((item, index) => (
                 <tr
-                  key={`${item.id}-${item.isAssistRow ? `assist-${item.currentAssist?.id}` : item.isEditorAssistRow ? `editor-assist-${item.currentEditorAssist?.id}` : 'main'}-${index}`}
+                  key={`${item.id}-${index}`}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  {/* No */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                    {startIndex + index + 1}
-                  </td>
+                  {filterRole === 'assist' ? (
+                    // Struktur tabel untuk assist
+                    <>
+                      {/* No */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {startIndex + index + 1}
+                      </td>
 
-                  {/* Info Event */}
-                  <td className="px-6 py-4">
-                    <div className="text-sm">
-                      <div className="font-medium text-gray-900 dark:text-gray-100 mb-1">
-                        {item.namaEvent}
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400 text-xs">
-                        {formatDate(item.tanggal)} • {item.lapangan}
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Waktu */}
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900 dark:text-gray-100">
-                      <div>{item.jamMulai ? item.jamMulai.slice(0, 5) : '-'} - {item.jamSelesai ? item.jamSelesai.slice(0, 5) : '-'}</div>
-                    </div>
-                  </td>
-
-                  {/* Fotografer - for fotografer role or all */}
-                  {(filterRole === 'fotografer' || filterRole === 'all') && (
-                    <td className="px-6 py-4">
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {item.fotografer?.nama || '-'}
-                        </div>
-                        <div className="text-purple-600 dark:text-purple-400 text-xs">
-                          {formatHours(item.jamFotografer)} jam
-                        </div>
-                      </div>
-                    </td>
-                  )}
-
-                  {/* Editor - for editor role or all */}
-                  {(filterRole === 'all') && (
-                    <td className="px-6 py-4">
-                      {item.editor?.nama ? (
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900 dark:text-gray-100">
-                            {item.editor.nama}
-                          </div>
-                          <div className="text-orange-600 dark:text-orange-400 text-xs">
-                            {formatHours(item.jamEditor)} match
-                          </div>
-                        </div>
-                      ) : (
+                      {/* Nama */}
+                      <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          -
+                          {item.nama || item.assistable?.nama || '-'}
                         </div>
+                      </td>
+
+                      {/* Tanggal */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {formatDate(item.tanggal)}
+                      </td>
+
+                      {/* Jam Mulai */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {item.jamMulai ? item.jamMulai.slice(0, 5) : '-'}
+                      </td>
+
+                      {/* Jam Selesai */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {item.jamSelesai ? item.jamSelesai.slice(0, 5) : '-'}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <StatusBadge status={item.status} />
+                      </td>
+
+                      {/* Aksi */}
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button
+                            onClick={() => onShowDetail(item)}
+                            className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                            title="Detail"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="p-1 text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300"
+                            title="Edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                            title="Hapus"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    // Struktur tabel untuk schedule (existing code)
+                    <>
+                      {/* No */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {startIndex + index + 1}
+                      </td>
+
+                      {/* Info Event */}
+                      <td className="px-6 py-4">
+                        <div className="text-sm">
+                          <div className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                            {item.namaEvent}
+                          </div>
+                          <div className="text-gray-500 dark:text-gray-400 text-xs">
+                            {formatDate(item.tanggal)} • {item.lapangan?.nama_lapangan || item.lapangan}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Waktu */}
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                          <div>{item.jamMulai ? item.jamMulai.slice(0, 5) : '-'} - {item.jamSelesai ? item.jamSelesai.slice(0, 5) : '-'}</div>
+                        </div>
+                      </td>
+
+                      {/* Fotografer - for fotografer role or all */}
+                      {(filterRole === 'fotografer' || filterRole === 'all') && (
+                        <td className="px-6 py-4">
+                          {item.fotografer ? (
+                            <div className="text-sm">
+                              <div className="font-medium text-gray-900 dark:text-gray-100">
+                                {item.fotografer.nama}
+                              </div>
+                              <div className="text-purple-600 dark:text-purple-400 text-xs">
+                                {formatHours(item.jamFotografer)} jam
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              -
+                            </div>
+                          )}
+                        </td>
                       )}
-                    </td>
+
+                      {/* Editor - for editor role or all */}
+                      {(filterRole === 'all' || filterRole === 'editor') && (
+                        <td className="px-6 py-4">
+                          {item.editor ? (
+                            <div className="text-sm">
+                              <div className="font-medium text-gray-900 dark:text-gray-100">
+                                {item.editor.nama}
+                              </div>
+                              <div className="text-orange-600 dark:text-orange-400 text-xs">
+                                {formatHours(item.jamEditor)} match
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              -
+                            </div>
+                          )}
+                        </td>
+                      )}
+
+                      {/* Status */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <StatusBadge status={item.status} />
+                      </td>
+
+                      {/* Aksi */}
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button
+                            onClick={() => onShowDetail(item)}
+                            className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                            title="Detail"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="p-1 text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300"
+                            title="Edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                            title="Hapus"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </>
                   )}
-
-                  {/* Editor - for editor role only */}
-                  {filterRole === 'editor' && (
-                    <td className="px-6 py-4">
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {item.editor?.nama || '-'}
-                        </div>
-                        <div className="text-orange-600 dark:text-orange-400 text-xs">
-                          {formatHours(item.jamEditor)} match
-                        </div>
-                      </div>
-                    </td>
-                  )}
-
-                  {/* Fotografer Utama - for assist role */}
-                  {filterRole === 'assist' && (
-                    <td className="px-6 py-4">
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {item.mainFotografer?.nama || item.fotografer?.nama || '-'}
-                        </div>
-                      </div>
-                    </td>
-                  )}
-
-                  {/* Assistant Fotografer - for assist role */}
-                  {filterRole === 'assist' && (
-                    <td className="px-6 py-4">
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {item.assistFotografer?.nama || '-'}
-                        </div>
-                        <div className="text-blue-600 dark:text-blue-400 text-xs">
-                          {formatHours(item.jamAssist)} sesi
-                        </div>
-                      </div>
-                    </td>
-                  )}
-
-                  {/* Editor Utama - for editorAssist role */}
-                  {filterRole === 'editorAssist' && (
-                    <td className="px-6 py-4">
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {item.mainEditor?.nama || item.editor?.nama || '-'}
-                        </div>
-                      </div>
-                    </td>
-                  )}
-
-                  {/* Assistant Editor - for editorAssist role */}
-                  {filterRole === 'editorAssist' && (
-                    <td className="px-6 py-4">
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {item.assistEditor?.nama || '-'}
-                        </div>
-                        <div className="text-purple-600 dark:text-purple-400 text-xs">
-                          {formatHours(item.jamAssist)} match
-                        </div>
-                      </div>
-                    </td>
-                  )}
-
-                  {/* Status */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge status={item.status} />
-                  </td>
-
-                  {/* Aksi */}
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex items-center justify-center space-x-2">
-                      <button
-                        onClick={() => onShowDetail(item)}
-                        className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                        title="Detail"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="p-1 text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300"
-                        title="Edit"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item)}
-                        className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                        title="Hapus"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -415,112 +431,65 @@ const LaporanTable = ({
         <div className="lg:hidden space-y-4 p-4">
           {paginatedData.map((item, index) => (
             <div key={`${item.id}-mobile-${index}`} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
-                    #{startIndex + index + 1} {item.namaEvent}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {formatDate(item.tanggal)} • {item.lapangan}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                    {item.jamMulai ? item.jamMulai.slice(0, 5) : '-'} - {item.jamSelesai ? item.jamSelesai.slice(0, 5) : '-'}
-                  </p>
-                </div>
-                <StatusBadge status={item.status} />
-              </div>
-
-              {(filterRole === 'all' || filterRole === 'fotografer') && item.fotografer && (
-                <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Fotografer:</span>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {item.fotografer.nama}
-                    </div>
-                    <div className="text-xs text-purple-600 dark:text-purple-400">
-                      {formatHours(item.jamFotografer)}h
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {(filterRole === 'all') && item.editor && (
-                <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Editor:</span>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {item.editor.nama}
-                    </div>
-                    <div className="text-xs text-orange-600 dark:text-orange-400">
-                      {formatHours(item.jamEditor)} match
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Mobile view untuk editor filter */}
-              {filterRole === 'editor' && (
-                <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Editor:</span>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {item.editor?.nama || '-'}
-                    </div>
-                    <div className="text-xs text-orange-600 dark:text-orange-400">
-                      {formatHours(item.jamEditor)} match
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {filterRole === 'assist' && (
+              {filterRole === 'assist' ? (
+                // Mobile card untuk assist
                 <>
-                  {(item.mainFotografer?.nama || item.fotografer?.nama) && (
-                    <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Fotografer Utama:</span>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {item.mainFotografer?.nama || item.fotografer?.nama}
-                        </div>
-                      </div>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        #{startIndex + index + 1} {item.nama || item.assistable?.nama || 'Unknown'}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {formatDate(item.tanggal)}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                        {item.jamMulai ? item.jamMulai.slice(0, 5) : '-'} - {item.jamSelesai ? item.jamSelesai.slice(0, 5) : '-'}
+                      </p>
                     </div>
-                  )}
-                  {item.assistFotografer?.nama && (
-                    <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Assistant:</span>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {item.assistFotografer.nama}
-                        </div>
-                        <div className="text-xs text-blue-600 dark:text-blue-400">
-                          {formatHours(item.jamAssist)} sesi
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    <StatusBadge status={item.status} />
+                  </div>
                 </>
-              )}
-
-              {/* Mobile view untuk editorAssist filter */}
-              {filterRole === 'editorAssist' && (
+              ) : (
+                // Mobile card untuk schedule (existing code)
                 <>
-                  <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Editor Utama:</span>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {item.mainEditor?.nama || item.editor?.nama || '-'}
-                      </div>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        #{startIndex + index + 1} {item.namaEvent}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {formatDate(item.tanggal)} • {item.lapangan?.nama_lapangan || item.lapangan}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                        {item.jamMulai ? item.jamMulai.slice(0, 5) : '-'} - {item.jamSelesai ? item.jamSelesai.slice(0, 5) : '-'}
+                      </p>
                     </div>
+                    <StatusBadge status={item.status} />
                   </div>
-                  {item.assistEditor?.nama && (
+
+                  {(filterRole === 'all' || filterRole === 'fotografer') && item.fotografer && (
                     <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Assistant Editor:</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Fotografer:</span>
                       <div className="text-right">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {item.assistEditor.nama}
+                          {item.fotografer.nama}
                         </div>
                         <div className="text-xs text-purple-600 dark:text-purple-400">
-                          {formatHours(item.jamAssist)} match
+                          {formatHours(item.jamFotografer)} jam
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {(filterRole === 'all' || filterRole === 'editor') && item.editor && (
+                    <div className="flex justify-between items-center py-2 border-t border-gray-100 dark:border-gray-700">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Editor:</span>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {item.editor.nama}
+                        </div>
+                        <div className="text-xs text-orange-600 dark:text-orange-400">
+                          {formatHours(item.jamEditor)} match
                         </div>
                       </div>
                     </div>

@@ -51,14 +51,38 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
   const dayNames = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'];
   const dayNamesLong = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
+  // Helper function to parse time - SIMPLIFIED
+  const parseTimeToMinutes = (timeString) => {
+    if (!timeString || timeString === 'Tidak ada waktu') return null;
+
+    try {
+      const parts = timeString.split(':');
+      if (parts.length >= 2) {
+        const hour = parseInt(parts[0], 10);
+        const minute = parseInt(parts[1], 10);
+
+        if (isNaN(hour) || isNaN(minute)) return null;
+
+        // Return time in minutes since midnight
+        return hour * 60 + minute;
+      }
+    } catch (error) {
+      console.warn('Error parsing time:', timeString, error);
+    }
+    return null;
+  };
+
   // Helper function to format time without seconds
   const formatTime = (timeString) => {
     if (!timeString) return 'Tidak ada waktu';
 
-    // Remove seconds if present
-    const parts = timeString.split(':');
-    if (parts.length >= 2) {
-      return `${parts[0]}:${parts[1]}`;
+    try {
+      const parts = timeString.split(':');
+      if (parts.length >= 2) {
+        return `${parts[0]}:${parts[1]}`;
+      }
+    } catch (error) {
+      console.warn('Error formatting time:', timeString, error);
     }
     return timeString;
   };
@@ -75,59 +99,112 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
     return `${startFormatted} - ${endFormatted}`;
   };
 
-  // Group schedules by date
+  // Helper function untuk mendapatkan nama lapangan
+  const getLapanganName = (lapangan) => {
+    if (lapangan && typeof lapangan === 'object' && lapangan.nama_lapangan) {
+      return lapangan.nama_lapangan;
+    }
+    if (typeof lapangan === 'string') {
+      return lapangan;
+    }
+    return '-';
+  };
+
+  // Group schedules by date - IMPROVED with better error handling
   const schedulesByDate = useMemo(() => {
-    console.log('Processing schedules:', schedules);
+    console.log('=== PROCESSING SCHEDULES ===');
+    console.log('Raw schedules:', schedules);
 
     const grouped = {};
-    schedules.forEach(schedule => {
-      try {
-        console.log('Processing schedule item:', schedule);
 
-        let dateKey;
-        if (schedule.tanggal) {
-          const date = new Date(schedule.tanggal);
-          if (isNaN(date.getTime())) {
-            console.warn('Invalid date format:', schedule.tanggal);
-            return;
-          }
-          dateKey = date.toISOString().split('T')[0];
-          console.log('Date key created:', dateKey);
-        } else {
-          console.warn('Missing tanggal field in schedule:', schedule);
+    if (!Array.isArray(schedules)) {
+      console.warn('Schedules is not an array:', schedules);
+      return grouped;
+    }
+
+    schedules.forEach((schedule, index) => {
+      try {
+        console.log(`Processing schedule ${index + 1}:`, schedule);
+
+        // Validasi tanggal
+        if (!schedule.tanggal) {
+          console.warn(`Schedule ${index + 1} missing tanggal:`, schedule);
           return;
         }
 
+        // Parse tanggal dengan berbagai format
+        let date;
+        try {
+          date = new Date(schedule.tanggal);
+          if (isNaN(date.getTime())) {
+            console.warn(`Invalid date in schedule ${index + 1}:`, schedule.tanggal);
+            return;
+          }
+        } catch (dateError) {
+          console.warn(`Date parsing error for schedule ${index + 1}:`, dateError);
+          return;
+        }
+
+        const dateKey = date.toISOString().split('T')[0];
+        console.log(`Date key for schedule ${index + 1}:`, dateKey);
+
         if (!grouped[dateKey]) grouped[dateKey] = [];
 
-        // Format time properly
-        let formattedTime;
+        // Format waktu
+        let formattedTime = 'Waktu belum ditentukan';
         if (schedule.waktu) {
           formattedTime = formatTime(schedule.waktu);
         } else if (schedule.jamMulai && schedule.jamSelesai) {
           formattedTime = formatTimeRange(schedule.jamMulai, schedule.jamSelesai);
-        } else {
-          formattedTime = 'Waktu belum ditentukan';
+        } else if (schedule.jamMulai) {
+          formattedTime = `${formatTime(schedule.jamMulai)} - selesai`;
         }
 
-        grouped[dateKey].push({
-          id: schedule.id,
+        // Parse waktu untuk filtering (dengan fallback yang lebih baik)
+        const timeStartMinutes = parseTimeToMinutes(schedule.jamMulai);
+        const timeEndMinutes = parseTimeToMinutes(schedule.jamSelesai);
+
+        console.log(`Time parsing for schedule ${index + 1}:`, {
+          jamMulai: schedule.jamMulai,
+          jamSelesai: schedule.jamSelesai,
+          timeStartMinutes,
+          timeEndMinutes,
+          formattedTime
+        });
+
+        const processedSchedule = {
+          id: schedule.id || `schedule_${index}`,
           time: formattedTime,
           timeStart: schedule.jamMulai || '00:00',
           timeEnd: schedule.jamSelesai || '23:59',
-          team: schedule.namaEvent || schedule.team || 'Unnamed Event',
+          timeStartMinutes,
+          timeEndMinutes,
+          team: schedule.namaEvent || schedule.team || `Event ${index + 1}`,
           fotografer: schedule.fotografer?.nama || schedule.fotografer || '-',
           editor: schedule.editor?.nama || schedule.editor || '-',
-          lapangan: schedule.lapangan || '-',
+          lapangan: getLapanganName(schedule.lapangan) || getLapanganName(schedule.location) || '-',
           status: schedule.status || 'pending',
-          description: schedule.catatan || 'Tidak ada deskripsi tambahan'
-        });
+          description: schedule.catatan || 'Tidak ada deskripsi tambahan',
+          // Raw data for debugging
+          _raw: schedule
+        };
+
+        grouped[dateKey].push(processedSchedule);
+        console.log(`Added schedule to ${dateKey}:`, processedSchedule);
+
       } catch (error) {
-        console.error('Error processing schedule:', schedule, error);
+        console.error(`Error processing schedule ${index + 1}:`, schedule, error);
       }
     });
 
-    console.log('Final grouped schedules:', grouped);
+    console.log('=== FINAL GROUPED SCHEDULES ===');
+    console.log(grouped);
+
+    // Log statistik
+    const totalDates = Object.keys(grouped).length;
+    const totalSchedules = Object.values(grouped).reduce((acc, arr) => acc + arr.length, 0);
+    console.log(`Grouped into ${totalDates} dates with ${totalSchedules} total schedules`);
+
     return grouped;
   }, [schedules]);
 
@@ -135,7 +212,7 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
   const generateTimeSlots = () => {
     const slots = [];
     for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
+      for (let minute = 0; minute < 60; minute += 60) { // Every hour instead of 30min for better performance
         const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         slots.push(timeString);
       }
@@ -164,16 +241,10 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
     // Current month
     const today = new Date();
     for (let day = 1; day <= daysInMonth; day++) {
-      // Fix timezone issue by using local date creation
       const date = new Date(year, month, day);
-      // Create date string in local timezone to avoid offset issues
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const isToday = today.toDateString() === date.toDateString();
       const hasSchedule = schedulesByDate[dateStr] && schedulesByDate[dateStr].length > 0;
-
-      if (dateStr === today.toISOString().split('T')[0]) {
-        console.log('Today date check:', dateStr, 'hasSchedule:', hasSchedule, 'schedules:', schedulesByDate[dateStr]);
-      }
 
       const hasEventFromEvents = events.some(e => {
         try {
@@ -225,7 +296,9 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
   };
 
   const getListEvents = () => {
+    console.log('=== GENERATING LIST EVENTS ===');
     const allEvents = [];
+
     Object.keys(schedulesByDate).forEach(dateStr => {
       const date = new Date(dateStr);
       schedulesByDate[dateStr].forEach(activity => {
@@ -236,7 +309,12 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
         });
       });
     });
-    return allEvents.sort((a, b) => new Date(a.dateStr) - new Date(b.dateStr));
+
+    const sortedEvents = allEvents.sort((a, b) => new Date(a.dateStr) - new Date(b.dateStr));
+    console.log('List events generated:', sortedEvents.length, 'events');
+    console.log('Sample events:', sortedEvents.slice(0, 3));
+
+    return sortedEvents;
   };
 
   const navigateMonth = (direction) => {
@@ -332,47 +410,66 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
     };
   }, [showPopup]);
 
-  // Render Month View with improved responsiveness
+  // Check if activities match time slot - SIMPLIFIED
+  const isActivityInTimeSlot = (activity, slotTimeMinutes) => {
+    // If no time info available, show in first few slots
+    if (activity.timeStartMinutes === null || activity.timeEndMinutes === null) {
+      return slotTimeMinutes >= 0 && slotTimeMinutes < 120; // Show in first 2 hours of day
+    }
+
+    // Handle midnight crossing
+    if (activity.timeEndMinutes <= activity.timeStartMinutes) {
+      return slotTimeMinutes >= activity.timeStartMinutes || slotTimeMinutes < activity.timeEndMinutes;
+    }
+
+    // Normal case - activity within same day
+    return slotTimeMinutes >= activity.timeStartMinutes && slotTimeMinutes < activity.timeEndMinutes;
+  };
+
+  // Render Month View - FIXED HEIGHT
   const renderMonthView = () => (
-    <div className="grid grid-cols-7 gap-1 sm:gap-2">
-      {dayNames.map(day =>
-        <div key={day} className="p-2 sm:p-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-          {day}
-        </div>
-      )}
-      {generateCalendarDays().map((dateObj, idx) => {
-        const isSelected = isSelectedDate(dateObj);
-        const isHovered = hoveredDate === idx;
-        const activities = schedulesByDate[dateObj.dateStr] || [];
-        const activityCount = activities.length;
+    <div className="h-[600px] flex flex-col">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+        {dayNames.map(day =>
+          <div key={day} className="p-2 sm:p-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+            {day}
+          </div>
+        )}
+      </div>
 
-        return (
-          <div
-            key={idx}
-            onMouseEnter={() => setHoveredDate(idx)}
-            onMouseLeave={() => setHoveredDate(null)}
-            onClick={() => handleDateClick(dateObj)}
-            className={`relative p-1 sm:p-2 text-center text-sm cursor-pointer rounded-lg transition-all duration-200 min-h-[60px] sm:min-h-[80px] lg:min-h-[100px]
-              ${dateObj.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'}
-              ${dateObj.isToday ? 'bg-blue-500 text-white font-semibold' :
-                isSelected ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-semibold' :
-                isHovered ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}
-            `}
-          >
-            <span className="relative z-10 text-xs sm:text-sm">{dateObj.day}</span>
+      <div className="flex-1 grid grid-cols-7 gap-1 sm:gap-2 h-full">
+        {generateCalendarDays().map((dateObj, idx) => {
+          const isSelected = isSelectedDate(dateObj);
+          const isHovered = hoveredDate === idx;
+          const activities = schedulesByDate[dateObj.dateStr] || [];
+          const activityCount = activities.length;
 
-            {/* Event indicators - improved for mobile */}
-            {activityCount > 0 && !dateObj.isToday && (
-              <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-0.5">
-                {Array.from({ length: Math.min(activityCount, 3) }).map((_, i) => (
-                  <div key={i} className="w-1 h-1 bg-blue-500 rounded-full"></div>
-                ))}
-              </div>
-            )}
+          return (
+            <div
+              key={idx}
+              onMouseEnter={() => setHoveredDate(idx)}
+              onMouseLeave={() => setHoveredDate(null)}
+              onClick={() => handleDateClick(dateObj)}
+              className={`relative p-1 sm:p-2 text-center text-sm cursor-pointer rounded-lg transition-all duration-200 flex flex-col
+                ${dateObj.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'}
+                ${dateObj.isToday ? 'bg-blue-500 text-white font-semibold' :
+                  isSelected ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-semibold' :
+                  isHovered ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}
+              `}
+            >
+              <span className="relative z-10 text-xs sm:text-sm mb-1">{dateObj.day}</span>
 
-            {/* Mini events display - responsive */}
-            {activityCount > 0 && (
-              <div className="absolute top-4 sm:top-6 left-0.5 right-0.5 space-y-0.5 sm:space-y-1">
+              {/* Event indicators */}
+              {activityCount > 0 && !dateObj.isToday && (
+                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-0.5">
+                  {Array.from({ length: Math.min(activityCount, 3) }).map((_, i) => (
+                    <div key={i} className="w-1 h-1 bg-blue-500 rounded-full"></div>
+                  ))}
+                </div>
+              )}
+
+              {/* Mini events display */}
+              <div className="flex-1 flex flex-col space-y-0.5">
                 {activities.slice(0, window.innerWidth < 640 ? 1 : 2).map((activity, i) => (
                   <div
                     key={i}
@@ -384,52 +481,52 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
                   </div>
                 ))}
                 {activityCount > (window.innerWidth < 640 ? 1 : 2) && (
-                  <div className="text-xs text-white">+{activityCount - (window.innerWidth < 640 ? 1 : 2)}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">+{activityCount - (window.innerWidth < 640 ? 1 : 2)}</div>
                 )}
               </div>
-            )}
 
-            {/* Tooltip - improved positioning */}
-            {isHovered && activityCount > 0 && window.innerWidth >= 768 && (
-              <div className="absolute z-20 bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-lg rounded-lg text-left text-xs p-2 popup-content">
-                <div className="font-semibold mb-1 text-gray-900 dark:text-white">{formatDate(dateObj.date)}</div>
-                {activities.slice(0, 3).map(act => (
-                  <div key={act.id} className="mb-2 border-b border-gray-100 dark:border-gray-600 pb-1">
-                    <div className="flex items-center space-x-1 text-gray-700 dark:text-gray-300">
-                      <Clock size={12} />
-                      <span>{act.time}</span>
+              {/* Tooltip */}
+              {isHovered && activityCount > 0 && window.innerWidth >= 768 && (
+                <div className="absolute z-20 bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-lg rounded-lg text-left text-xs p-2 popup-content">
+                  <div className="font-semibold mb-1 text-gray-900 dark:text-white">{formatDate(dateObj.date)}</div>
+                  {activities.slice(0, 3).map(act => (
+                    <div key={act.id} className="mb-2 border-b border-gray-100 dark:border-gray-600 pb-1">
+                      <div className="flex items-center space-x-1 text-gray-700 dark:text-gray-300">
+                        <Clock size={12} />
+                        <span>{act.time}</span>
+                      </div>
+                      <div className="flex items-center space-x-1 text-gray-700 dark:text-gray-300">
+                        <Users size={12} />
+                        <span className="truncate">{act.team}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-1 text-gray-700 dark:text-gray-300">
-                      <Users size={12} />
-                      <span className="truncate">{act.team}</span>
-                    </div>
-                  </div>
-                ))}
-                {activities.length > 3 && (
-                  <div className="text-xs text-gray-500">+{activities.length - 3} lainnya</div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                  ))}
+                  {activities.length > 3 && (
+                    <div className="text-xs text-gray-500">+{activities.length - 3} lainnya</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 
-  // Render Week View with ScrollContainer
+  // Render Week View - FIXED HEIGHT
   const renderWeekView = () => {
     const weekDays = generateWeekDays();
-    const timeSlots = generateTimeSlots().filter((_, idx) => idx % 4 === 0);
+    const timeSlots = generateTimeSlots();
 
     return (
-      <div className="w-full overflow-x-auto">
-        {/* Header dengan hari - responsive */}
-        <div className="min-w-[600px] grid grid-cols-8 gap-px mb-4 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
-          <div className="bg-gray-100 dark:bg-gray-800 p-2 sm:p-3 flex items-center justify-center text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 min-h-[60px]">
+      <div className="h-[600px] flex flex-col w-full overflow-x-auto">
+        {/* Header */}
+        <div className="min-w-[600px] grid grid-cols-8 gap-px mb-4 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+          <div className="bg-gray-100 dark:bg-gray-800 p-2 sm:p-3 flex items-center justify-center text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 h-[60px]">
             Waktu
           </div>
           {weekDays.map((day, idx) => (
-            <div key={idx} className={`p-2 sm:p-3 text-center text-xs sm:text-sm font-medium transition-colors flex flex-col items-center justify-center min-h-[60px]
+            <div key={idx} className={`p-2 sm:p-3 text-center text-xs sm:text-sm font-medium transition-colors flex flex-col items-center justify-center h-[60px]
               ${day.isToday
                 ? 'bg-blue-500 text-white'
                 : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -442,69 +539,77 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
           ))}
         </div>
 
-        {/* Grid waktu dengan ScrollContainer */}
-        <div className="min-w-[600px] bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-          <ScrollContainer maxHeight="400px">
-            {timeSlots.map((timeSlot, slotIdx) => (
-              <div key={timeSlot} className="grid grid-cols-8 gap-px border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
-                <div className="p-1 sm:p-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center min-h-[40px] sm:min-h-[50px]">
-                  <span className="font-mono">{timeSlot}</span>
-                </div>
+        {/* Content */}
+        <div className="flex-1 min-w-[600px] bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <ScrollContainer maxHeight="100%">
+            {timeSlots.map((timeSlot, slotIdx) => {
+              const slotTimeMinutes = parseTimeToMinutes(timeSlot);
 
-                {weekDays.map((day, dayIdx) => {
-                  const dayActivities = day.activities.filter(activity => {
-                    const activityStart = activity.timeStart || '00:00';
-                    const activityEnd = activity.timeEnd || '23:59';
-                    const [slotHour] = timeSlot.split(':').map(Number);
-                    const [startHour] = activityStart.split(':').map(Number);
-                    const [endHour] = activityEnd.split(':').map(Number);
+              return (
+                <div key={timeSlot} className="grid grid-cols-8 gap-px border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <div className="p-1 sm:p-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center h-[50px]">
+                    <span className="font-mono">{timeSlot}</span>
+                  </div>
 
-                    return startHour <= slotHour && endHour > slotHour;
-                  });
+                  {weekDays.map((day, dayIdx) => {
+                    // Show all activities for this day (simplified filtering)
+                    const dayActivities = day.activities.filter(activity =>
+                      isActivityInTimeSlot(activity, slotTimeMinutes)
+                    );
 
-                  return (
-                    <div
-                      key={dayIdx}
-                      className="p-0.5 sm:p-1 min-h-[40px] sm:min-h-[50px] border-r border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors relative"
-                      onClick={() => handleDateClick({ date: day.date, dateStr: day.dateStr })}
-                    >
-                      {dayActivities.map(activity => (
-                        <div
-                          key={activity.id}
-                          className={`text-xs p-1 sm:p-1.5 mb-1 rounded-md text-white shadow-sm ${getStatusColor(activity.status)} hover:shadow-md transition-shadow cursor-pointer`}
-                          title={`${activity.team}\n${activity.time}\n${activity.lapangan || ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEventClick && onEventClick(activity.id);
-                          }}
-                        >
-                          <div className="font-medium truncate">{activity.team}</div>
-                          {activity.lapangan && activity.lapangan !== '-' && (
-                            <div className="text-xs opacity-90 truncate hidden sm:block">{activity.lapangan}</div>
-                          )}
+                    return (
+                      <div
+                        key={dayIdx}
+                        className="p-0.5 sm:p-1 min-h-[50px] border-r border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors relative"
+                        onClick={() => handleDateClick({ date: day.date, dateStr: day.dateStr })}
+                      >
+                        <div className="flex flex-col space-y-0.5">
+                          {dayActivities.map((activity, activityIdx) => (
+                            <div
+                              key={`${activity.id}-${activityIdx}`}
+                              className={`text-xs p-1 rounded-md text-white shadow-sm ${getStatusColor(activity.status)} hover:shadow-md transition-shadow cursor-pointer flex-shrink-0`}
+                              title={`${activity.team}\n${activity.time}\n${activity.lapangan || ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEventClick && onEventClick(activity.id);
+                              }}
+                            >
+                              <div className="font-medium truncate text-xs leading-tight">{activity.team}</div>
+                              {activity.lapangan && activity.lapangan !== '-' && (
+                                <div className="text-xs opacity-90 truncate hidden sm:block leading-tight">{activity.lapangan}</div>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+
+                        {/* Show count if more than 3 activities */}
+                        {dayActivities.length > 3 && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
+                            +{dayActivities.length - 3} lainnya
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </ScrollContainer>
         </div>
       </div>
     );
   };
 
-  // Render Day View with ScrollContainer
+  // Render Day View - FIXED HEIGHT
   const renderDayView = () => {
     const dateStr = currentDate.toISOString().split('T')[0];
     const dayActivities = schedulesByDate[dateStr] || [];
-    const timeSlots = generateTimeSlots().filter((_, idx) => idx % 4 === 0);
+    const timeSlots = generateTimeSlots();
 
     return (
-      <div className="space-y-4">
-        {/* Header hari - responsive */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-3 sm:p-4 text-center">
+      <div className="h-[600px] flex flex-col space-y-4">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-3 sm:p-4 text-center flex-shrink-0">
           <h3 className="text-base sm:text-lg font-semibold">
             {dayNamesLong[currentDate.getDay()]}, {currentDate.getDate()} {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </h3>
@@ -513,22 +618,17 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
           </p>
         </div>
 
-        {/* Time grid dengan ScrollContainer */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <ScrollContainer maxHeight="400px">
+        {/* Content */}
+        <div className="flex-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <ScrollContainer maxHeight="100%">
             {timeSlots.map(timeSlot => {
-              const slotActivities = dayActivities.filter(activity => {
-                const activityStart = activity.timeStart || '00:00';
-                const activityEnd = activity.timeEnd || '23:59';
-                const [slotHour] = timeSlot.split(':').map(Number);
-                const [startHour] = activityStart.split(':').map(Number);
-                const [endHour] = activityEnd.split(':').map(Number);
-
-                return startHour <= slotHour && endHour > slotHour;
-              });
+              const slotTimeMinutes = parseTimeToMinutes(timeSlot);
+              const slotActivities = dayActivities.filter(activity =>
+                isActivityInTimeSlot(activity, slotTimeMinutes)
+              );
 
               return (
-                <div key={timeSlot} className="flex border-b border-gray-100 dark:border-gray-800 min-h-[50px] sm:min-h-[60px] hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <div key={timeSlot} className="flex border-b border-gray-100 dark:border-gray-800 min-h-[60px] hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                   <div className="w-16 sm:w-20 p-2 sm:p-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
                     <span className="font-mono">{timeSlot}</span>
                   </div>
@@ -577,9 +677,9 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
           </ScrollContainer>
         </div>
 
-        {/* Summary card - responsive */}
+        {/* Summary card */}
         {dayActivities.length > 0 && (
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 sm:p-4 flex-shrink-0">
             <h4 className="font-medium text-gray-900 dark:text-white mb-2 text-sm sm:text-base">Ringkasan Hari Ini</h4>
             <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
               <div>
@@ -599,40 +699,44 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
     );
   };
 
-  // Render List View with ScrollContainer
+  // Render List View - FIXED HEIGHT and IMPROVED DATA DISPLAY
   const renderListView = () => {
     const listEvents = getListEvents();
 
+    console.log('=== RENDERING LIST VIEW ===');
+    console.log('Total events to display:', listEvents.length);
+
     return (
-      <div className="space-y-4">
+      <div className="h-[600px] flex flex-col space-y-4">
+        {/* Header info */}
+        <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 px-1 flex-shrink-0">
+          <span>Total jadwal: <strong>{listEvents.length}</strong></span>
+          {listEvents.length > 5 && (
+            <span className="text-blue-600 dark:text-blue-400">Scroll untuk melihat semua</span>
+          )}
+        </div>
+
         {listEvents.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            Tidak ada jadwal yang ditemukan
+          <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
+            <div className="text-center">
+              <div className="text-2xl mb-2">📅</div>
+              <div>Tidak ada jadwal yang ditemukan</div>
+              <div className="text-sm mt-1">Pastikan data sudah dimuat dengan benar</div>
+            </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            {/* Header info */}
-            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 px-1">
-              <span>Total jadwal: {listEvents.length}</span>
-              {listEvents.length > 3 && (
-                <span className="text-blue-600 dark:text-blue-400">Scroll untuk melihat lebih banyak</span>
-              )}
-            </div>
-
-            {/* Scrollable container dengan ScrollContainer component */}
-            <ScrollContainer
-              maxHeight={listEvents.length > 3 ? '600px' : 'none'}
-              className="space-y-3"
-            >
-              {listEvents.map(event => (
+          <div className="flex-1 overflow-hidden">
+            <ScrollContainer maxHeight="100%" className="space-y-3">
+              {listEvents.map((event, index) => (
                 <div
-                  key={`${event.dateStr}-${event.id}`}
+                  key={`${event.dateStr}-${event.id}-${index}`}
                   className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600"
                   onClick={() => onEventClick && onEventClick(event.id)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-2">
+                      {/* Status and Date */}
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-3">
                         <span className={`px-2 py-1 text-xs text-white rounded-full ${getStatusColor(event.status)} inline-block w-fit shadow-sm`}>
                           {getStatusText(event.status)}
                         </span>
@@ -641,42 +745,52 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
                         </span>
                       </div>
 
+                      {/* Event Title */}
                       <h3 className="font-semibold text-gray-900 dark:text-white mb-3 truncate text-base">
                         {event.team}
                       </h3>
 
+                      {/* Event Details Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-300">
                         <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-md px-2 py-1">
-                          <Clock size={14} className="text-blue-500" />
-                          <span>{event.time}</span>
+                          <Clock size={14} className="text-blue-500 flex-shrink-0" />
+                          <span className="truncate">{event.time}</span>
                         </div>
 
                         {event.lapangan !== '-' && (
                           <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-md px-2 py-1">
-                            <MapPin size={14} className="text-green-500" />
+                            <MapPin size={14} className="text-green-500 flex-shrink-0" />
                             <span className="truncate">{event.lapangan}</span>
                           </div>
                         )}
 
                         {event.fotografer !== '-' && (
                           <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-md px-2 py-1">
-                            <Users size={14} className="text-purple-500" />
-                            <span className="truncate">Fotografer: {event.fotografer}</span>
+                            <Users size={14} className="text-purple-500 flex-shrink-0" />
+                            <span className="truncate">📷 {event.fotografer}</span>
                           </div>
                         )}
 
                         {event.editor !== '-' && (
                           <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 rounded-md px-2 py-1">
-                            <Eye size={14} className="text-orange-500" />
-                            <span className="truncate">Editor: {event.editor}</span>
+                            <Eye size={14} className="text-orange-500 flex-shrink-0" />
+                            <span className="truncate">✂️ {event.editor}</span>
                           </div>
                         )}
                       </div>
 
+                      {/* Description */}
                       {event.description !== 'Tidak ada deskripsi tambahan' && (
                         <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md text-sm text-gray-700 dark:text-gray-300 border-l-4 border-blue-400">
                           <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Catatan:</span>
                           <div className="mt-1">{event.description}</div>
+                        </div>
+                      )}
+
+                      {/* Debug info in development */}
+                      {process.env.NODE_ENV === 'development' && (
+                        <div className="mt-2 text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 p-1 rounded">
+                          ID: {event.id} | Date: {event.dateStr} | Start: {event.timeStart} | End: {event.timeEnd}
                         </div>
                       )}
                     </div>
@@ -691,9 +805,9 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 relative transition-colors duration-300">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 relative transition-colors duration-300 h-[800px] flex flex-col">
       {/* Header - Responsive */}
-      <div className="flex flex-col space-y-4 mb-6">
+      <div className="flex flex-col space-y-4 mb-6 flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <h3 className="text-lg sm:text-xl font-bold text-gray-700 dark:text-gray-100 flex items-center">
             📅 Kalender Jadwal
@@ -791,15 +905,15 @@ const Calendar = ({ events = [], schedules = [], onDateSelect, selectedDate, onE
         </div>
       </div>
 
-      {/* Calendar Content */}
-      <div className="calendar-content">
+      {/* Calendar Content - Fixed height */}
+      <div className="flex-1 overflow-hidden">
         {viewMode === 'month' && renderMonthView()}
         {viewMode === 'week' && renderWeekView()}
         {viewMode === 'day' && renderDayView()}
         {viewMode === 'list' && renderListView()}
       </div>
 
-      {/* Popup Detail Modal dengan ScrollContainer - Responsive */}
+      {/* Popup Detail Modal */}
       {showPopup && popupData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden popup-content flex flex-col">

@@ -16,16 +16,15 @@ class Schedule extends Model
         'namaEvent',
         'fotografer_id',
         'editor_id',
-        'lapangan',
+        'lapangan_id',
         'jamFotografer',
         'jamEditor',
         'catatan',
-        'linkGdriveFotografer',
-        'linkGdriveEditor'
+        'linkGdrive',
     ];
 
     protected $casts = [
-        'tanggal' => 'date', // Simple date cast for form compatibility
+        'tanggal' => 'date',
         'jamMulai' => 'string',
         'jamSelesai' => 'string',
         'jamFotografer' => 'decimal:1',
@@ -42,14 +41,9 @@ class Schedule extends Model
         return $this->belongsTo(Editor::class);
     }
 
-    public function assists()
+    public function lapangan()
     {
-        return $this->hasMany(ScheduleFotograferAssist::class);
-    }
-
-    public function editorAssists()
-    {
-        return $this->hasMany(ScheduleEditorAssist::class);
+        return $this->belongsTo(Lapangan::class);
     }
 
     /**

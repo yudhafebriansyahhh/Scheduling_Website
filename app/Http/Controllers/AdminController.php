@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Schedule;
 use App\Models\Fotografer;
 use App\Models\Editor;
+use App\Models\Lapangan;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,8 +16,8 @@ class AdminController extends Controller
     {
         $now = Carbon::now();
 
-        // Ambil data schedule dengan relasi
-        $schedules = Schedule::with(['fotografer', 'editor'])
+        // Ambil data schedule dengan relasi (termasuk lapangan)
+        $schedules = Schedule::with(['fotografer', 'editor', 'lapangan'])
             ->orderBy('tanggal', 'desc')
             ->orderBy('jamMulai', 'desc')
             ->get()
@@ -28,12 +29,12 @@ class AdminController extends Controller
                     'jamSelesai' => $schedule->jamSelesai,
                     'namaEvent' => $schedule->namaEvent,
                     'team' => $schedule->team ?? null,
-                    'lapangan' => $schedule->lapangan,
+                    'lapangan' => $schedule->lapangan?->nama_lapangan ?? null, // Ambil dari relasi
                     'status' => $this->determineStatus($schedule->tanggal, $schedule->jamMulai, $schedule->jamSelesai),
                     'catatan' => $schedule->catatan,
                     'fotografer' => $schedule->fotografer?->nama ?? null,
                     'editor' => $schedule->editor?->nama ?? null,
-                    'location' => $schedule->lapangan,
+                    'location' => $schedule->lapangan?->nama_lapangan ?? null, // Untuk backward compatibility
                 ];
             });
 
@@ -68,7 +69,7 @@ class AdminController extends Controller
     {
         $date = $request->get('date');
 
-        $schedules = Schedule::with(['fotografer', 'editor'])
+        $schedules = Schedule::with(['fotografer', 'editor', 'lapangan'])
             ->where('tanggal', $date)
             ->orderBy('jamMulai')
             ->get()
@@ -79,11 +80,11 @@ class AdminController extends Controller
                     'jamMulai' => $schedule->jamMulai,
                     'jamSelesai' => $schedule->jamSelesai,
                     'namaEvent' => $schedule->namaEvent,
-                    'lapangan' => $schedule->lapangan,
+                    'lapangan' => $schedule->lapangan?->nama_lapangan ?? null,
                     'status' => $this->determineStatus($schedule->tanggal, $schedule->jamMulai, $schedule->jamSelesai),
                     'fotografer' => $schedule->fotografer?->nama ?? null,
                     'editor' => $schedule->editor?->nama ?? null,
-                    'location' => $schedule->lapangan,
+                    'location' => $schedule->lapangan?->nama ?? null,
                 ];
             });
 

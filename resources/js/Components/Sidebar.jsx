@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
   Home,
   Camera,
   Edit,
   FileText,
+  User,
   LogOut,
   Sun,
-  Moon
+  Moon,
+  MapPin,
+  Users
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const Sidebar = ({ currentRoute = 'dashboard' }) => {
   const [darkMode, setDarkMode] = useState(false);
@@ -55,6 +59,20 @@ const Sidebar = ({ currentRoute = 'dashboard' }) => {
       href: '/editor'
     },
     {
+      key: 'assist',
+      label: 'Assist',
+      icon: Users,
+      route: 'assist',
+      href: '/assist'
+    },
+    {
+      key: 'lapangan',
+      label: 'Lapangan',
+      icon: MapPin,
+      route: 'lapangan',
+      href: '/lapangan'
+    },
+    {
       key: 'laporan',
       label: 'Laporan',
       icon: FileText,
@@ -63,10 +81,20 @@ const Sidebar = ({ currentRoute = 'dashboard' }) => {
     }
   ];
 
-  const handleLogout = () => {
-    if (window.confirm('Apakah Anda yakin ingin logout?')) {
-      console.log('Logout clicked');
-      // router.post('/logout');
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: "Anda akan logout dari aplikasi!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Ya, Logout!',
+      cancelButtonText: 'Batal'
+    });
+
+    if (result.isConfirmed) {
+      router.post('/logout');
     }
   };
 
@@ -114,8 +142,24 @@ const Sidebar = ({ currentRoute = 'dashboard' }) => {
           })}
         </div>
 
-        {/* Logout */}
+        {/* Profile and Logout */}
         <div className="px-6 mt-8 pt-8 border-t dark:border-gray-700">
+          {/* Profile Menu */}
+          <Link
+            href={route('profile.edit')}
+            className={`
+              w-full flex items-center p-3 mb-2 rounded-lg transition-colors duration-200
+              ${currentRoute === 'profile.edit'
+                ? 'bg-blue-500 text-white'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }
+            `}
+          >
+            <User size={20} className="mr-3" />
+            Update Profile
+          </Link>
+
+          {/* Logout */}
           <button
             onClick={handleLogout}
             className="w-full flex items-center p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors duration-200"

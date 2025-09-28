@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Editor;
 use App\Models\Fotografer;
+use App\Models\Lapangan;
 use App\Models\Schedule;
-use App\Models\ScheduleEditorAssist;
-use App\Models\ScheduleFotograferAssist;
+use App\Models\Assist;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,7 +15,7 @@ class ScheduleController extends Controller
 {
     public function index()
     {
-        $schedules = Schedule::with(['fotografer', 'editor', 'assists.fotografer', 'editorAssists.editor'])
+        $schedules = Schedule::with(['fotografer', 'editor', 'lapangan'])
             ->latest('tanggal')
             ->latest('jamMulai')
             ->get()
@@ -28,48 +28,23 @@ class ScheduleController extends Controller
                 return $schedule;
             });
 
-        // Transform data untuk role "assist" - buat row terpisah untuk setiap assist
-        // Assist adalah fotografer yang membantu fotografer utama
-        $assistSchedules = collect();
-
-        foreach ($schedules as $schedule) {
-            if ($schedule->assists && $schedule->assists->count() > 0) {
-                // Untuk setiap assist, buat row terpisah
-                foreach ($schedule->assists as $assist) {
-                    $assistSchedule = $schedule->replicate();
-                    $assistSchedule->id = $schedule->id; // Keep original ID
-                    $assistSchedule->currentAssist = $assist; // Add current assist info
-                    $assistSchedule->jamAssist = $assist->jamAssist;
-                    $assistSchedule->assistFotografer = $assist->fotografer; // Fotografer yang jadi assist
-                    $assistSchedule->isAssistRow = true; // Flag untuk membedakan
-                    $assistSchedule->mainFotografer = $schedule->fotografer; // Fotografer utama
-                    $assistSchedules->push($assistSchedule);
-                }
-            }
-        }
-
-        // Transform data untuk editor assists - buat row terpisah untuk setiap editor assist
-        $editorAssistSchedules = collect();
-
-        foreach ($schedules as $schedule) {
-            if ($schedule->editorAssists && $schedule->editorAssists->count() > 0) {
-                foreach ($schedule->editorAssists as $assist) {
-                    $assistSchedule = $schedule->replicate();
-                    $assistSchedule->id = $schedule->id;
-                    $assistSchedule->currentEditorAssist = $assist;
-                    $assistSchedule->jamAssist = $assist->jamAssist;
-                    $assistSchedule->assistEditor = $assist->editor;
-                    $assistSchedule->isEditorAssistRow = true;
-                    $assistSchedule->mainEditor = $schedule->editor; // PENTING: Editor utama
-                    $editorAssistSchedules->push($assistSchedule);
-                }
-            }
-        }
+        $assists = Assist::with('assistable')
+            ->latest('tanggal')
+            ->latest('jamMulai')
+            ->get()
+            ->map(function ($assist) {
+                $assist->status = $this->determineStatus(
+                    $assist->tanggal instanceof Carbon ? $assist->tanggal->format('Y-m-d') : $assist->tanggal,
+                    $assist->jamMulai,
+                    $assist->jamSelesai
+                );
+                $assist->nama = $assist->assistable->nama ?? 'Unknown';
+                return $assist;
+            });
 
         return Inertia::render('Admin/Laporan', [
             'schedules' => $schedules,
-            'assistSchedules' => $assistSchedules,
-            'editorAssistSchedules' => $editorAssistSchedules
+            'assists' => $assists
         ]);
     }
 
@@ -78,6 +53,7 @@ class ScheduleController extends Controller
         return Inertia::render('Admin/Schedule/TambahSchedule', [
             'fotografers' => Fotografer::all(),
             'editors' => Editor::all(),
+            'lapangans' => Lapangan::all(),
         ]);
     }
 
@@ -85,44 +61,14 @@ class ScheduleController extends Controller
     {
         $validated = $this->validateSchedule($request);
 
-        try {
-            $schedule = Schedule::create($this->prepareScheduleData($validated));
+        Schedule::create($this->prepareScheduleData($validated));
 
-            // Simpan assistants ke tabel terpisah
-            if (!empty($validated['assistants'])) {
-                foreach ($validated['assistants'] as $assistant) {
-                    if (!empty($assistant['fotografer_id']) && !empty($assistant['jamAssist'])) {
-                        ScheduleFotograferAssist::create([
-                            'schedule_id' => $schedule->id,
-                            'fotografer_id' => $assistant['fotografer_id'],
-                            'jamAssist' => $assistant['jamAssist']
-                        ]);
-                    }
-                }
-            }
-
-            // Simpan assist editor
-            if (!empty($validated['assistEditors'])) {
-                foreach ($validated['assistEditors'] as $assist) {
-                    if (!empty($assist['editor_id']) && !empty($assist['jamAssist'])) {
-                        ScheduleEditorAssist::create([
-                            'schedule_id' => $schedule->id,
-                            'editor_id' => $assist['editor_id'],
-                            'jamAssist' => $assist['jamAssist']
-                        ]);
-                    }
-                }
-            }
-
-            return redirect()->route('schedule.index')->with('success', 'Schedule berhasil ditambahkan.');
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => $e->getMessage()])->withInput();
-        }
+        return redirect()->route('schedule.index')->with('success', 'Schedule berhasil ditambahkan.');
     }
 
     public function show(Schedule $schedule)
     {
-        $schedule->load(['fotografer', 'editor', 'assists.fotografer', 'editorAssists.editor']);
+        $schedule->load(['fotografer', 'editor', 'lapangan']);
         $schedule->status = $this->determineStatus(
             $schedule->tanggal->format('Y-m-d'),
             $schedule->jamMulai,
@@ -136,9 +82,6 @@ class ScheduleController extends Controller
 
     public function edit(Schedule $schedule)
     {
-        // Load semua relasi yang diperlukan
-        $schedule->load(['assists.fotografer', 'editorAssists.editor']);
-
         $status = $this->determineStatus(
             $schedule->tanggal->format('Y-m-d'),
             $schedule->jamMulai,
@@ -153,29 +96,19 @@ class ScheduleController extends Controller
             'namaEvent' => $schedule->namaEvent,
             'fotografer_id' => $schedule->fotografer_id,
             'editor_id' => $schedule->editor_id,
-            'jamEditor' => $schedule->jamEditor,
-            'lapangan' => $schedule->lapangan,
+            'lapangan_id' => $schedule->lapangan_id,
             'catatan' => $schedule->catatan,
+            'linkGdrive' => $schedule->linkGdrive,
             'status' => $status,
             'jamFotografer' => $schedule->jamFotografer,
-            'assistants' => $schedule->assists->map(function ($assist) {
-                return [
-                    'fotografer_id' => $assist->fotografer_id,
-                    'jamAssist' => $assist->jamAssist,
-                ];
-            })->toArray(),
-            'assistEditors' => $schedule->editorAssists->map(function ($assist) {
-                return [
-                    'editor_id' => $assist->editor_id,
-                    'jamAssist' => $assist->jamAssist,
-                ];
-            })->toArray(),
+            'jamEditor' => $schedule->jamEditor,
         ];
 
         return Inertia::render('Admin/Schedule/EditSchedule', [
             'schedule' => $scheduleData,
             'fotografers' => Fotografer::all(),
             'editors' => Editor::all(),
+            'lapangans' => Lapangan::all(),
         ]);
     }
 
@@ -183,44 +116,9 @@ class ScheduleController extends Controller
     {
         $validated = $this->validateSchedule($request, true);
 
-        \DB::beginTransaction();
-        try {
-            $schedule->update($this->prepareScheduleData($validated, $schedule));
+        $schedule->update($this->prepareScheduleData($validated, $schedule));
 
-            // Reset fotografer assist
-            $schedule->assists()->delete();
-            if (!empty($validated['assistants'])) {
-                foreach ($validated['assistants'] as $assistant) {
-                    if (!empty($assistant['fotografer_id']) && !empty($assistant['jamAssist'])) {
-                        ScheduleFotograferAssist::create([
-                            'schedule_id' => $schedule->id,
-                            'fotografer_id' => $assistant['fotografer_id'],
-                            'jamAssist' => $assistant['jamAssist']
-                        ]);
-                    }
-                }
-            }
-
-            // Reset editor assist
-            $schedule->editorAssists()->delete();
-            if (!empty($validated['assistEditors'])) {
-                foreach ($validated['assistEditors'] as $assist) {
-                    if (!empty($assist['editor_id']) && !empty($assist['jamAssist'])) {
-                        \App\Models\ScheduleEditorAssist::create([
-                            'schedule_id' => $schedule->id,
-                            'editor_id' => $assist['editor_id'],
-                            'jamAssist' => $assist['jamAssist']
-                        ]);
-                    }
-                }
-            }
-
-            \DB::commit();
-            return redirect()->route('schedule.index')->with('success', 'Schedule berhasil diupdate.');
-        } catch (\Exception $e) {
-            \DB::rollBack();
-            return back()->withErrors(['error' => $e->getMessage()])->withInput();
-        }
+        return redirect()->route('schedule.index')->with('success', 'Schedule berhasil diupdate.');
     }
 
     public function destroy(Schedule $schedule)
@@ -236,34 +134,40 @@ class ScheduleController extends Controller
             'jamMulai' => 'required|date_format:H:i',
             'jamSelesai' => 'required|date_format:H:i',
             'namaEvent' => 'required|string|max:255',
-            'fotografer_id' => 'required|exists:fotografers,id',
+            'fotografer_id' => 'nullable|exists:fotografers,id',
             'editor_id' => 'nullable|exists:editors,id',
-            'jamEditor' => 'nullable|numeric|min:0',
-            'lapangan' => 'required|string|max:255',
+            'lapangan_id' => 'required|exists:lapangans,id',
             'catatan' => 'nullable|string',
-            'assistants' => 'nullable|array',
-            'assistants.*.fotografer_id' => 'nullable|exists:fotografers,id',
-            'assistants.*.jamAssist' => 'nullable|numeric|min:0',
-            'assistEditors' => 'nullable|array',
-            'assistEditors.*.editor_id' => 'nullable|exists:editors,id',
-            'assistEditors.*.jamAssist' => 'nullable|numeric|min:0',
+            'linkGdrive' => 'nullable|url',
         ]);
     }
 
     private function prepareScheduleData(array $validated, ?Schedule $schedule = null): array
     {
         $durasiJam = 0;
+        $jamEditor = 0;
 
         if (!empty($validated['jamMulai']) && !empty($validated['jamSelesai'])) {
             $durasiJam = $this->calculateDuration($validated['jamMulai'], $validated['jamSelesai']);
         }
 
-        $scheduleData = collect($validated)->except(['assistants', 'assistEditors'])->toArray();
+        if (!empty($validated['editor_id'])) {
+            $jamEditor = 1;
+        }
 
-        return array_merge($scheduleData, [
+        return [
+            'tanggal' => $validated['tanggal'],
+            'jamMulai' => $validated['jamMulai'],
+            'jamSelesai' => $validated['jamSelesai'],
+            'namaEvent' => $validated['namaEvent'],
+            'fotografer_id' => $validated['fotografer_id'] ?: null,
+            'editor_id' => $validated['editor_id'] ?: null,
+            'lapangan_id' => $validated['lapangan_id'],
+            'catatan' => $validated['catatan'],
+            'linkGdrive' => $validated['linkGdrive'],
             'jamFotografer' => $durasiJam,
-            // ⚠️ status tidak disimpan, dihitung on the fly
-        ]);
+            'jamEditor' => $jamEditor,
+        ];
     }
 
     private function calculateDuration(string $jamMulai, string $jamSelesai): float
@@ -282,13 +186,55 @@ class ScheduleController extends Controller
     {
         $now = now('Asia/Jakarta');
 
-        // pastikan tanggal jadi format Y-m-d string
-        if ($tanggal instanceof Carbon) {
+        if ($tanggal instanceof \Carbon\Carbon) {
             $tanggal = $tanggal->format('Y-m-d');
         }
 
-        $scheduleStart = Carbon::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jamMulai}", 'Asia/Jakarta');
-        $scheduleEnd = Carbon::createFromFormat('Y-m-d H:i:s', "{$tanggal} {$jamSelesai}", 'Asia/Jakarta');
+        $tanggal = trim($tanggal);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggal)) {
+            return 'pending';
+        }
+
+        $parseDateTimeOrTime = function (string $input, string $baseDate) {
+            $input = trim($input);
+
+            // case: "YYYY-MM-DD HH:MM" or "YYYY-MM-DD HH:MM:SS"
+            if (preg_match('/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}(:\d{2})?)/', $input, $m)) {
+                $datePart = $m[1];
+                $timePart = $m[2];
+                if (strlen($timePart) === 5)
+                    $timePart .= ':00';
+                $useDate = ($datePart === $baseDate) ? $datePart : $baseDate;
+                return \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', "$useDate $timePart", 'Asia/Jakarta');
+            }
+
+            // case: "YYYY-MM-DDTHH:MM" (ISO)
+            if (preg_match('/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}(:\d{2})?)/', $input, $m)) {
+                $datePart = $m[1];
+                $timePart = $m[2];
+                if (strlen($timePart) === 5)
+                    $timePart .= ':00';
+                $useDate = ($datePart === $baseDate) ? $datePart : $baseDate;
+                return \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', "$useDate $timePart", 'Asia/Jakarta');
+            }
+
+            // case: time only "HH:MM" or "HH:MM:SS"
+            if (preg_match('/\d{2}:\d{2}(:\d{2})?/', $input, $m)) {
+                $time = $m[0];
+                if (strlen($time) === 5)
+                    $time .= ':00';
+                return \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', "$baseDate $time", 'Asia/Jakarta');
+            }
+
+            return null;
+        };
+
+        $scheduleStart = $parseDateTimeOrTime($jamMulai, $tanggal);
+        $scheduleEnd = $parseDateTimeOrTime($jamSelesai, $tanggal);
+
+        if (!$scheduleStart || !$scheduleEnd) {
+            return 'pending';
+        }
 
         if ($scheduleEnd->lte($scheduleStart)) {
             $scheduleEnd->addDay();
@@ -302,4 +248,5 @@ class ScheduleController extends Controller
             return 'completed';
         }
     }
+
 }

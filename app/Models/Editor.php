@@ -41,4 +41,9 @@ class Editor extends Model
     {
         return $this->photo ? asset('storage/' . $this->photo) : null;
     }
+
+    public function assists()
+    {
+        return $this->morphMany(Assist::class, 'assistable');
+    }
 }

@@ -7,7 +7,7 @@ import CustomTimeInput from "../../../Components/CustomTimeInput";
 import Swal from "sweetalert2";
 
 const TambahSchedule = () => {
-    const { fotografers, editors } = usePage().props;
+    const { fotografers, editors, lapangans } = usePage().props;
 
     const { data, setData, post, processing, reset, errors } = useForm({
         tanggal: "",
@@ -16,15 +16,14 @@ const TambahSchedule = () => {
         namaEvent: "",
         fotografer_id: "",
         editor_id: "",
-        jamEditor: "",
-        lapangan: "",
+        lapangan_id: "",
         catatan: "",
-        assistants: [], // assist fotografer
-        assistEditors: [], // assist editor
+        linkGdrive: "",
     });
 
-    const [showAssistants, setShowAssistants] = useState(false);
+    const [showFotografer, setShowFotografer] = useState(false);
     const [showEditor, setShowEditor] = useState(false);
+    const [showGdriveLink, setShowGdriveLink] = useState(false);
 
     const addOneHour = (timeString) => {
         if (!timeString) return "";
@@ -33,71 +32,22 @@ const TambahSchedule = () => {
         return `${nextHour.toString().padStart(2, "0")}:${minutes}`;
     };
 
-    // Assistants
-    const addAssistant = () => {
-        setData((prevData) => ({
-            ...prevData,
-            assistants: [
-                ...prevData.assistants,
-                { fotografer_id: "", jamAssist: "" },
-            ],
-        }));
-        setShowAssistants(true);
-    };
-
-    const removeAssistant = (index) => {
-        setData((prevData) => ({
-            ...prevData,
-            assistants: prevData.assistants.filter((_, i) => i !== index),
-        }));
-        if (data.assistants.length === 1) {
-            setShowAssistants(false);
-        }
-    };
-
-    const updateAssistant = (index, field, value) => {
-        setData((prevData) => ({
-            ...prevData,
-            assistants: prevData.assistants.map(
-                (assistant, i) =>
-                    i === index ? { ...assistant, [field]: value } : assistant
-            ),
-        }));
+    // Fotografer
+    const addFotografer = () => setShowFotografer(true);
+    const removeFotografer = () => {
+        setData((prevData) => ({ ...prevData, fotografer_id: "" }));
+        setShowFotografer(false);
     };
 
     // Editor
     const addEditor = () => setShowEditor(true);
     const removeEditor = () => {
-        setData((prevData) => ({ ...prevData, editor_id: "", jamEditor: "" }));
+        setData((prevData) => ({ ...prevData, editor_id: "" }));
         setShowEditor(false);
     };
 
-    // Assist Editor
-    const addAssistEditor = () => {
-        setData((prev) => ({
-            ...prev,
-            assistEditors: [
-                ...prev.assistEditors,
-                { editor_id: "", jamAssist: "" },
-            ],
-        }));
-    };
-
-    const removeAssistEditor = (index) => {
-        setData((prev) => ({
-            ...prev,
-            assistEditors: prev.assistEditors.filter((_, i) => i !== index),
-        }));
-    };
-
-    const updateAssistEditor = (index, field, value) => {
-        setData((prev) => ({
-            ...prev,
-            assistEditors: prev.assistEditors.map((item, i) =>
-                i === index ? { ...item, [field]: value } : item
-            ),
-        }));
-    };
+    // Google Drive Link
+    const addGdriveLink = () => setShowGdriveLink(true);
 
     // Jam mulai
     const handleJamMulaiChange = (time) => {
@@ -252,47 +202,47 @@ const TambahSchedule = () => {
                                 )}
                             </div>
 
-                            {/* Fotografer */}
+                            {/* Lapangan */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Fotografer
+                                    Lapangan
                                 </label>
                                 <select
-                                    value={data.fotografer_id}
+                                    value={data.lapangan_id}
                                     onChange={(e) =>
-                                        setData("fotografer_id", e.target.value)
+                                        setData("lapangan_id", e.target.value)
                                     }
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                     required
                                 >
-                                    <option value="">Pilih Fotografer</option>
-                                    {fotografers.map((f) => (
-                                        <option key={f.id} value={f.id}>
-                                            {f.nama}
+                                    <option value="">Pilih Lapangan</option>
+                                    {lapangans.map((lapangan) => (
+                                        <option key={lapangan.id} value={lapangan.id}>
+                                            {lapangan.nama_lapangan}
                                         </option>
                                     ))}
                                 </select>
-                                {errors.fotografer_id && (
+                                {errors.lapangan_id && (
                                     <div className="text-red-500 dark:text-red-400 text-sm mt-1">
-                                        {errors.fotografer_id}
+                                        {errors.lapangan_id}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Tombol tambah assist & editor */}
+                            {/* Tombol tambah fotografer & editor */}
                             <div className="flex gap-4">
-                                {/* Assist Fotografer */}
-                                <button
-                                    type="button"
-                                    onClick={addAssistant}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
-                                >
-                                    <Plus size={16} />
-                                    Tambah Assist Fotografer
-                                </button>
+                                {!showFotografer && (
+                                    <button
+                                        type="button"
+                                        onClick={addFotografer}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
+                                    >
+                                        <Plus size={16} />
+                                        Tambah Fotografer
+                                    </button>
+                                )}
 
-                                {/* Editor / Assist Editor */}
-                                {!showEditor ? (
+                                {!showEditor && (
                                     <button
                                         type="button"
                                         onClick={addEditor}
@@ -301,17 +251,50 @@ const TambahSchedule = () => {
                                         <Plus size={16} />
                                         Tambah Editor
                                     </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={addAssistEditor}
-                                        className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
-                                    >
-                                        <Plus size={16} />
-                                        Tambah Assist Editor
-                                    </button>
                                 )}
                             </div>
+
+                            {/* Fotografer Form */}
+                            {showFotografer && (
+                                <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Fotografer
+                                        </h4>
+                                        <button
+                                            type="button"
+                                            onClick={removeFotografer}
+                                            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            Pilih Fotografer
+                                        </label>
+                                        <select
+                                            value={data.fotografer_id}
+                                            onChange={(e) =>
+                                                setData("fotografer_id", e.target.value)
+                                            }
+                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                        >
+                                            <option value="">Pilih Fotografer</option>
+                                            {fotografers.map((f) => (
+                                                <option key={f.id} value={f.id}>
+                                                    {f.nama}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.fotografer_id && (
+                                            <div className="text-red-500 dark:text-red-400 text-sm mt-1">
+                                                {errors.fotografer_id}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Editor Form */}
                             {showEditor && (
@@ -328,236 +311,32 @@ const TambahSchedule = () => {
                                             <X size={18} />
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Pilih Editor
-                                            </label>
-                                            <select
-                                                value={data.editor_id}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "editor_id",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                            >
-                                                <option value="">
-                                                    Pilih Editor
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            Pilih Editor
+                                        </label>
+                                        <select
+                                            value={data.editor_id}
+                                            onChange={(e) =>
+                                                setData("editor_id", e.target.value)
+                                            }
+                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                        >
+                                            <option value="">Pilih Editor</option>
+                                            {editors.map((e) => (
+                                                <option key={e.id} value={e.id}>
+                                                    {e.nama}
                                                 </option>
-                                                {editors.map((e) => (
-                                                    <option
-                                                        key={e.id}
-                                                        value={e.id}
-                                                    >
-                                                        {e.nama}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors.editor_id && (
-                                                <div className="text-red-500 dark:text-red-400 text-sm mt-1">
-                                                    {errors.editor_id}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Match Editor
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                value={data.jamEditor}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "jamEditor",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="1"
-                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                            />
-                                            {errors.jamEditor && (
-                                                <div className="text-red-500 dark:text-red-400 text-sm mt-1">
-                                                    {errors.jamEditor}
-                                                </div>
-                                            )}
-                                        </div>
+                                            ))}
+                                        </select>
+                                        {errors.editor_id && (
+                                            <div className="text-red-500 dark:text-red-400 text-sm mt-1">
+                                                {errors.editor_id}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
-
-                            {data.assistEditors.map((assist, index) => (
-                                <div
-                                    key={index}
-                                    className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300"
-                                >
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Assist Editor {index + 1}
-                                        </h4>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                removeAssistEditor(index)
-                                            }
-                                            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                                        >
-                                            <X size={18} />
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Pilih Assist Editor
-                                            </label>
-                                            <select
-                                                value={assist.editor_id}
-                                                onChange={(e) =>
-                                                    updateAssistEditor(
-                                                        index,
-                                                        "editor_id",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                            >
-                                                <option value="">
-                                                    Pilih Assist Editor
-                                                </option>
-                                                {editors.map((ed) => (
-                                                    <option
-                                                        key={ed.id}
-                                                        value={ed.id}
-                                                    >
-                                                        {ed.nama}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Match Assist
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                value={assist.jamAssist}
-                                                onChange={(e) =>
-                                                    updateAssistEditor(
-                                                        index,
-                                                        "jamAssist",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="1"
-                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-
-                            {/* Assistant Forms */}
-                            {showAssistants &&
-                                data.assistants.map((assistant, index) => (
-                                    <div
-                                        key={index}
-                                        className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300"
-                                    >
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                Assist Fotografer {index + 1}
-                                            </h4>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    removeAssistant(index)
-                                                }
-                                                className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                                            >
-                                                <X size={18} />
-                                            </button>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                    Pilih Assistant
-                                                </label>
-                                                <select
-                                                    value={
-                                                        assistant.fotografer_id ||
-                                                        ""
-                                                    }
-                                                    onChange={(e) =>
-                                                        updateAssistant(
-                                                            index,
-                                                            "fotografer_id",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                                >
-                                                    <option value="">
-                                                        Pilih Assistant
-                                                    </option>
-                                                    {fotografers.map((f) => (
-                                                        <option
-                                                            key={f.id}
-                                                            value={f.id}
-                                                        >
-                                                            {f.nama}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                    Sesi Assist
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    value={
-                                                        assistant.jamAssist || ""
-                                                    }
-                                                    onChange={(e) =>
-                                                        updateAssistant(
-                                                            index,
-                                                            "jamAssist",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    placeholder="1"
-                                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-
-                            {/* Lapangan */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Lapangan
-                                </label>
-                                <input
-                                    type="text"
-                                    value={data.lapangan}
-                                    onChange={(e) =>
-                                        setData("lapangan", e.target.value)
-                                    }
-                                    placeholder="Masukkan Nama Lapangan"
-                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                    required
-                                />
-                                {errors.lapangan && (
-                                    <div className="text-red-500 dark:text-red-400 text-sm mt-1">
-                                        {errors.lapangan}
-                                    </div>
-                                )}
-                            </div>
 
                             {/* Catatan */}
                             <div>
@@ -579,6 +358,43 @@ const TambahSchedule = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Tombol tambah Google Drive Link */}
+                            {!showGdriveLink && (
+                                <div className="flex justify-start">
+                                    <button
+                                        type="button"
+                                        onClick={addGdriveLink}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
+                                    >
+                                        <Plus size={16} />
+                                        Tambah Link Google Drive
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Google Drive Link Form */}
+                            {showGdriveLink && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Link Google Drive
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={data.linkGdrive}
+                                        onChange={(e) =>
+                                            setData("linkGdrive", e.target.value)
+                                        }
+                                        placeholder="https://drive.google.com/..."
+                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                    />
+                                    {errors.linkGdrive && (
+                                        <div className="text-red-500 dark:text-red-400 text-sm mt-1">
+                                            {errors.linkGdrive}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Submit */}
                             <div className="flex justify-end pt-4">

@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AssistController;
 use App\Http\Controllers\EditorController;
 use App\Http\Controllers\FotograferController;
+use App\Http\Controllers\LapanganController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ProfileController;
@@ -30,6 +32,8 @@ Route::resource('admin', AdminController::class);
 Route::resource('fotografer', FotograferController::class);
 Route::resource('editor', EditorController::class);
 Route::resource('schedule', ScheduleController::class);
+Route::resource('assist', AssistController::class);
+Route::resource('lapangan', LapanganController::class);
 
 // Route untuk mendapatkan jadwal berdasarkan tanggal (AJAX)
 Route::get('/admin/schedules-by-date', [AdminController::class, 'getSchedulesByDate'])->name('admin.schedules.by-date');

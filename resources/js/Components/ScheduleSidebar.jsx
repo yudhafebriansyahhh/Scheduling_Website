@@ -21,14 +21,14 @@ const ScrollContainer = ({ children, maxHeight = '400px', className = '', style 
           width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
+          background: rgba(255, 255, 255, 0.1);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #3b82f6;
+          background: rgba(255, 255, 255, 0.4);
           border-radius: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #2563eb;
+          background: rgba(255, 255, 255, 0.6);
         }
       `}</style>
     </div>
@@ -53,7 +53,7 @@ export default function ScheduleSidebar({ schedules = [], onScheduleClick }) {
   // Gunakan data dari props
   const displaySchedules = todaySchedules;
 
-  const formatDate = (date) => {
+  const formatDate = () => {
     const today = new Date();
     const options = {
       weekday: 'long',
@@ -124,7 +124,7 @@ export default function ScheduleSidebar({ schedules = [], onScheduleClick }) {
   };
 
   return (
-    <div className="bg-gradient-to-bl from-blue-700 to-blue-500 dark:from-gray-800 dark:to-gray-700 text-white rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 h-full flex flex-col transition-colors duration-300">
+    <div className="bg-gradient-to-bl from-blue-700 to-blue-500 dark:from-gray-800 dark:to-gray-700 text-white rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 transition-colors duration-300 h-[800px] flex flex-col">
       {/* Header */}
       <div className="flex items-center mb-4 flex-shrink-0">
         <Calendar size={24} className="mr-2" />
@@ -149,84 +149,114 @@ export default function ScheduleSidebar({ schedules = [], onScheduleClick }) {
         </div>
       </div>
 
-      {/* Schedule List with ScrollContainer - menggunakan flex-1 untuk mengisi sisa ruang */}
-      <div className="flex-1 overflow-hidden">
+      {/* Schedule List with ScrollContainer - flex-1 untuk mengisi sisa ruang dengan height terbatas */}
+      <div className="flex-1 overflow-hidden min-h-0">
         {displaySchedules.length === 0 ? (
           <div className="text-center py-8 opacity-75 flex flex-col items-center justify-center h-full">
             <Calendar size={48} className="mx-auto mb-3 opacity-50" />
             <p>Tidak ada jadwal hari ini.</p>
+            <p className="text-sm mt-2 opacity-75">Jadwal akan muncul otomatis sesuai tanggal</p>
           </div>
         ) : (
           <ScrollContainer
             maxHeight="100%"
-            className="space-y-3 h-full"
+            className="space-y-3"
             style={{
               maxHeight: '100%',
               scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(255, 255, 255, 0.6) rgba(255, 255, 255, 0.1)'
+              scrollbarColor: 'rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.1)'
             }}
           >
-            {displaySchedules.map((schedule) => (
+            {displaySchedules.map((schedule, index) => (
               <div
-                key={schedule.id}
+                key={`${schedule.id}-${index}`}
                 className={`
                   bg-white bg-opacity-20 rounded-lg p-4 cursor-pointer transition-all duration-200 backdrop-blur-sm
-                  hover:bg-opacity-30 hover:transform hover:scale-105 hover:shadow-lg
+                  hover:bg-opacity-30 hover:transform hover:scale-[1.02] hover:shadow-lg
                   ${expandedSchedule === schedule.id ? 'bg-opacity-30 shadow-md' : ''}
                 `}
                 onClick={() => handleScheduleClick(schedule)}
               >
                 {/* Main Schedule Info */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    <div className={`w-3 h-3 rounded-full mr-3 shadow-sm ${getStatusColor(schedule.status)}`}></div>
-                    <div>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-start flex-1 min-w-0">
+                    <div className={`w-3 h-3 rounded-full mr-3 mt-1 shadow-sm flex-shrink-0 ${getStatusColor(schedule.status)}`}></div>
+                    <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm">
                         {formatTime(schedule.jamMulai)} - {formatTime(schedule.jamSelesai)}
                       </div>
-                      <div className="text-xs opacity-90 font-medium">{schedule.namaEvent}</div>
+                      <div className="text-xs opacity-90 font-medium truncate pr-2">{schedule.namaEvent}</div>
                     </div>
                   </div>
                   <ChevronRight
                     size={16}
-                    className={`transition-transform duration-200 opacity-80 hover:opacity-100 ${
+                    className={`transition-transform duration-200 opacity-80 hover:opacity-100 flex-shrink-0 ${
                       expandedSchedule === schedule.id ? 'rotate-90' : ''
                     }`}
                   />
                 </div>
 
-                {/* Location - Use lapangan instead of location */}
-                {schedule.lapangan && (
+                {/* Location - Perbaiki penggunaan lapangan dari relasi */}
+                {(schedule.lapangan || schedule.location) && (
                   <div className="flex items-center text-sm opacity-90 mb-2">
-                    <MapPin size={14} className="mr-2" />
-                    {schedule.lapangan}
+                    <MapPin size={14} className="mr-2 flex-shrink-0" />
+                    <span className="truncate">{schedule.lapangan || schedule.location}</span>
                   </div>
                 )}
+
+                {/* Quick Status Indicator */}
+                {!expandedSchedule || expandedSchedule !== schedule.id ? (
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs opacity-75">
+                      Status: {getStatusText(schedule.status)}
+                    </div>
+                    <div className="text-xs opacity-60">
+                      {calculateDuration(schedule.jamMulai, schedule.jamSelesai)}h
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Expanded Details */}
                 {expandedSchedule === schedule.id && (
                   <div className="mt-3 pt-3 border-t border-white border-opacity-30 space-y-2 animate-in slide-in-from-top-1 duration-200">
-                    {schedule.fotografer && (
+                    {schedule.fotografer && schedule.fotografer !== '-' && (
                       <div className="flex items-center text-sm bg-white bg-opacity-10 rounded-md p-2">
-                        <Users size={14} className="mr-2 text-blue-200" />
+                        <Users size={14} className="mr-2 text-blue-200 flex-shrink-0" />
                         <span className="opacity-90">Fotografer: </span>
-                        <span className="font-medium ml-1">{schedule.fotografer}</span>
+                        <span className="font-medium ml-1 truncate">{schedule.fotografer}</span>
                       </div>
                     )}
 
-                    {schedule.editor && (
+                    {schedule.editor && schedule.editor !== '-' && (
                       <div className="flex items-center text-sm bg-white bg-opacity-10 rounded-md p-2">
-                        <Users size={14} className="mr-2 text-green-200" />
+                        <Eye size={14} className="mr-2 text-green-200 flex-shrink-0" />
                         <span className="opacity-90">Editor: </span>
-                        <span className="font-medium ml-1">{schedule.editor}</span>
+                        <span className="font-medium ml-1 truncate">{schedule.editor}</span>
                       </div>
                     )}
 
                     {schedule.status && (
                       <div className="flex items-center text-sm bg-white bg-opacity-10 rounded-md p-2">
-                        <Clock size={14} className="mr-2 text-yellow-200" />
+                        <Clock size={14} className="mr-2 text-yellow-200 flex-shrink-0" />
                         <span className="opacity-90">Status: </span>
                         <span className="font-medium ml-1">{getStatusText(schedule.status)}</span>
+                      </div>
+                    )}
+
+                    {/* Duration Info */}
+                    <div className="flex items-center text-sm bg-white bg-opacity-10 rounded-md p-2">
+                      <Clock size={14} className="mr-2 text-purple-200 flex-shrink-0" />
+                      <span className="opacity-90">Durasi: </span>
+                      <span className="font-medium ml-1">
+                        {calculateDuration(schedule.jamMulai, schedule.jamSelesai)} jam
+                      </span>
+                    </div>
+
+                    {/* Description if available */}
+                    {schedule.catatan && schedule.catatan !== 'Tidak ada deskripsi tambahan' && (
+                      <div className="text-sm bg-white bg-opacity-10 rounded-md p-2">
+                        <div className="opacity-90 mb-1">Catatan:</div>
+                        <div className="font-medium text-xs leading-relaxed">{schedule.catatan}</div>
                       </div>
                     )}
 
@@ -241,13 +271,19 @@ export default function ScheduleSidebar({ schedules = [], onScheduleClick }) {
                 )}
               </div>
             ))}
+
+            {/* Spacer untuk memastikan scroll berjalan lancar */}
+            <div className="h-4"></div>
           </ScrollContainer>
         )}
       </div>
 
-      {/* Footer Info */}
+      {/* Footer Info - fixed at bottom */}
       <div className="mt-4 pt-4 border-t border-white border-opacity-20 text-xs opacity-75 text-center flex-shrink-0">
-        Terakhir diperbarui: {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+        <div>Terakhir diperbarui:</div>
+        <div className="font-medium">
+          {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import {
     X,
     Calendar,
@@ -74,6 +74,20 @@ export default function ScheduleModal({ schedule, onClose }) {
         } else {
             console.error('Schedule ID is missing');
         }
+    };
+
+    // Helper function untuk mendapatkan nama lapangan
+    const getLapanganName = (lapangan) => {
+        // Jika lapangan adalah object dengan property nama
+        if (lapangan && typeof lapangan === 'object' && lapangan.nama) {
+            return lapangan.nama;
+        }
+        // Jika lapangan adalah string langsung
+        if (typeof lapangan === 'string') {
+            return lapangan;
+        }
+        // Jika tidak ada atau null
+        return 'Tidak ada lapangan';
     };
 
     return (
@@ -157,8 +171,8 @@ export default function ScheduleModal({ schedule, onClose }) {
                                 </div>
                             </div>
 
-                            {/* Lapangan */}
-                            {schedule.lapangan && (
+                            {/* Lapangan - Perbaikan untuk menangani struktur data baru */}
+                            {(schedule.lapangan || schedule.location) && (
                                 <div className="flex items-start space-x-3">
                                     <MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-1 flex-shrink-0" />
                                     <div className="min-w-0 flex-1">
@@ -166,14 +180,16 @@ export default function ScheduleModal({ schedule, onClose }) {
                                             Lapangan
                                         </p>
                                         <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">
-                                            {schedule.lapangan}
+                                            {getLapanganName(schedule.lapangan) ||
+                                             getLapanganName(schedule.location) ||
+                                             "Tidak ada lapangan"}
                                         </p>
                                     </div>
                                 </div>
                             )}
 
                             {/* Fotografer */}
-                            {schedule.fotografer && (
+                            {schedule.fotografer && schedule.fotografer !== '-' && (
                                 <div className="flex items-start space-x-3">
                                     <Camera className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-1 flex-shrink-0" />
                                     <div className="min-w-0 flex-1">
@@ -181,14 +197,16 @@ export default function ScheduleModal({ schedule, onClose }) {
                                             Fotografer
                                         </p>
                                         <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">
-                                            {schedule.fotografer}
+                                            {typeof schedule.fotografer === 'object' && schedule.fotografer?.nama
+                                                ? schedule.fotografer.nama
+                                                : schedule.fotografer}
                                         </p>
                                     </div>
                                 </div>
                             )}
 
                             {/* Editor */}
-                            {schedule.editor && (
+                            {schedule.editor && schedule.editor !== '-' && (
                                 <div className="flex items-start space-x-3">
                                     <Edit3 className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-1 flex-shrink-0" />
                                     <div className="min-w-0 flex-1">
@@ -196,37 +214,14 @@ export default function ScheduleModal({ schedule, onClose }) {
                                             Editor
                                         </p>
                                         <p className="text-sm text-gray-900 dark:text-gray-100 font-medium">
-                                            {schedule.editor}
+                                            {typeof schedule.editor === 'object' && schedule.editor?.nama
+                                                ? schedule.editor.nama
+                                                : schedule.editor}
                                         </p>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Asisten */}
-                            {schedule.assists &&
-                                schedule.assists.length > 0 && (
-                                    <div className="flex items-start space-x-3">
-                                        <Users className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-1 flex-shrink-0" />
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                                Asisten (
-                                                {schedule.assists.length})
-                                            </p>
-                                            <div className="space-y-0.5">
-                                                {schedule.assists.map(
-                                                    (assist, index) => (
-                                                        <p
-                                                            key={index}
-                                                            className="text-sm text-gray-900 dark:text-gray-100 font-medium"
-                                                        >
-                                                            {assist}
-                                                        </p>
-                                                    )
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                         </div>
 
                         {/* Catatan */}

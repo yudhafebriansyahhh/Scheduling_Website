@@ -53,7 +53,8 @@ const ScheduleTable = ({
                 item.namaEvent || "",
                 item.fotografer?.nama || item.fotografer || "",
                 item.editor?.nama || item.editor || "",
-                item.lapangan || "",
+                // Perbaikan untuk lapangan - bisa dari relasi atau string langsung
+                item.lapangan?.nama || item.lapangan || "",
                 item.status || "",
                 formatDate(item.tanggal),
             ];
@@ -99,8 +100,9 @@ const ScheduleTable = ({
                 bValue = b.editor?.nama || b.editor || "";
                 break;
             case "lapangan":
-                aValue = a.lapangan || "";
-                bValue = b.lapangan || "";
+                // Perbaikan untuk sorting lapangan
+                aValue = a.lapangan?.nama || a.lapangan || "";
+                bValue = b.lapangan?.nama || b.lapangan || "";
                 break;
             case "status":
                 aValue = a.status || "";
@@ -285,7 +287,7 @@ const ScheduleTable = ({
                             size={16}
                             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500"
                         />
-                        <input
+                                                <input
                             type="text"
                             placeholder="Cari jadwal..."
                             value={searchTerm}
@@ -513,7 +515,8 @@ const ScheduleTable = ({
                                             "-"}
                                     </td>
                                     <td className="py-4 px-4 text-gray-800 dark:text-gray-200">
-                                        {schedule.lapangan || "-"}
+                                        {/* Perbaikan untuk menampilkan lapangan dari relasi atau string langsung */}
+                                        {schedule.lapangan?.nama || schedule.lapangan || "-"}
                                     </td>
                                     <td className="py-4 px-4">
                                         {getStatusBadge(schedule.status)}

@@ -528,7 +528,7 @@ const KelolaEditor = ({ editors: initialEditors }) => {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-gray-300 dark:bg-gray-600">
-                              <span className="text-xs text-gray-500 dark:text-gray-400">No Photo</span>
+                              <span className="text-xs text-gray-500 text-center dark:text-gray-400">No Photo</span>
                             </div>
                           )}
                         </div>

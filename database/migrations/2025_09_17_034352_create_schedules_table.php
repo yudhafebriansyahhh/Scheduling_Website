@@ -11,23 +11,25 @@ return new class extends Migration
      */
     public function up(): void
     {
+
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
             $table->date('tanggal');
             $table->time('jamMulai');
             $table->time('jamSelesai');
             $table->string('namaEvent');
-            $table->foreignId('fotografer_id')->constrained('fotografers')->onDelete('cascade');
-            $table->foreignId('editor_id')->nullable()->constrained('editors')->onDelete('cascade'); // ✅ Tambah nullable()
-            $table->string('lapangan');
+            $table->foreignId('fotografer_id')->nullable()->constrained('fotografers')->onDelete('cascade');
+            $table->foreignId('editor_id')->nullable()->constrained('editors')->onDelete('cascade');
+            $table->foreignId('lapangan_id')->constrained('lapangans')->onDelete('cascade'); // ✅ Ubah ke foreign key
             $table->decimal('jamFotografer', 4, 1)->default(0);
             $table->decimal('jamEditor', 4, 1)->nullable();
             $table->text('catatan')->nullable();
-            $table->text('linkGdriveFotografer')->nullable();
-            $table->text('linkGdriveEditor')->nullable();
+            $table->text('linkGdrive')->nullable();
             $table->timestamps();
         });
     }
+
+
 
     /**
      * Reverse the migrations.

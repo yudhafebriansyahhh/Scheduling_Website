@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, CheckCircle, Camera, Edit3, UserCheck } from 'lucide-react';
+import { Users, CheckCircle, Camera, Edit3, Calendar } from 'lucide-react';
 
 const LaporanSummaryCards = ({ summary }) => {
   const {
@@ -7,7 +7,7 @@ const LaporanSummaryCards = ({ summary }) => {
     completedJobs,
     totalJamFotografer,
     totalJamEditor,
-    totalJamAssist,
+    totalSesi,
     filterRole
   } = summary;
 
@@ -19,6 +19,19 @@ const LaporanSummaryCards = ({ summary }) => {
 
   // Cards berdasarkan role yang dipilih
   const getCards = () => {
+    if (filterRole === 'assist') {
+      // Untuk role assist, hanya tampilkan jumlah sesi
+      return [
+        {
+          title: "Total Sesi",
+          value: totalSesi || 0,
+          icon: Calendar,
+          color: "bg-indigo-500",
+          cardClass: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800"
+        }
+      ];
+    }
+
     const baseCards = [
       {
         title: "Total Jobs",
@@ -48,7 +61,6 @@ const LaporanSummaryCards = ({ summary }) => {
         }
       ];
     } else if (filterRole === 'editor') {
-      // PERBAIKAN: Untuk role editor, gunakan totalJamEditor (bukan totalJamAssist)
       return [
         ...baseCards,
         {
@@ -57,28 +69,6 @@ const LaporanSummaryCards = ({ summary }) => {
           icon: Edit3,
           color: "bg-orange-500",
           cardClass: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
-        }
-      ];
-    } else if (filterRole === 'assist') {
-      return [
-        ...baseCards,
-        {
-          title: "Total Sesi Assistant",
-          value: `${formatJam(totalJamAssist)} sesi`,
-          icon: UserCheck,
-          color: "bg-indigo-500",
-          cardClass: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800"
-        }
-      ];
-    } else if (filterRole === 'editorAssist') {
-      return [
-        ...baseCards,
-        {
-          title: "Total Match Assistant",
-          value: `${formatJam(totalJamAssist)} match`,
-          icon: UserCheck,
-          color: "bg-purple-500",
-          cardClass: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
         }
       ];
     } else {
@@ -107,6 +97,7 @@ const LaporanSummaryCards = ({ summary }) => {
 
   return (
     <div className={`grid gap-6 mb-8 ${
+      cards.length === 1 ? 'grid-cols-1 md:grid-cols-1 max-w-sm' :
       cards.length === 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
     }`}>
       {cards.map((card, index) => {

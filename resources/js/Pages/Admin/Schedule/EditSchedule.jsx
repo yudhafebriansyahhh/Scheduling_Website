@@ -2,14 +2,13 @@ import React, { useState } from "react";
 import { Head, usePage, useForm } from "@inertiajs/react";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import Sidebar from "../../../Components/Sidebar";
-import Swal from "sweetalert2";
 import CustomDateInput from "../../../Components/CustomDateInput";
 import CustomTimeInput from "../../../Components/CustomTimeInput";
+import Swal from "sweetalert2";
 
 const EditSchedule = () => {
-    const { schedule, fotografers, editors } = usePage().props;
+    const { schedule, fotografers, editors, lapangans } = usePage().props;
 
-    // Prefill data dari schedule - FIXED field names dan format
     const { data, setData, put, processing, errors } = useForm({
         tanggal: schedule.tanggal || "",
         jamMulai: schedule.jamMulai ? schedule.jamMulai.substring(0, 5) : "",
@@ -17,28 +16,14 @@ const EditSchedule = () => {
         namaEvent: schedule.namaEvent || "",
         fotografer_id: schedule.fotografer_id || "",
         editor_id: schedule.editor_id || "",
-        jamEditor: schedule.jamEditor ? parseInt(schedule.jamEditor) : "",
-        lapangan: schedule.lapangan || "",
+        lapangan_id: schedule.lapangan_id || "",
         catatan: schedule.catatan || "",
-        assistants: schedule.assistants
-            ? schedule.assistants.map((assist) => ({
-                  fotografer_id: assist.fotografer_id,
-                  jamAssist: assist.jamAssist ? parseInt(assist.jamAssist) : "",
-              }))
-            : [],
-        assistEditors: schedule.assistEditors
-            ? schedule.assistEditors.map((assist) => ({
-                  editor_id: assist.editor_id,
-                  jamAssist: assist.jamAssist ? parseInt(assist.jamAssist) : "",
-              }))
-            : [],
+        linkGdrive: schedule.linkGdrive || "",
     });
 
-    const [showAssistants, setShowAssistants] = useState(
-        schedule.assistants && schedule.assistants.length > 0
-    );
+    const [showFotografer, setShowFotografer] = useState(!!schedule.fotografer_id);
     const [showEditor, setShowEditor] = useState(!!schedule.editor_id);
-    const [isNewSchedule, setIsNewSchedule] = useState(false); // Track if this is a new schedule being created
+    const [showGdriveLink, setShowGdriveLink] = useState(!!schedule.linkGdrive);
 
     const addOneHour = (timeString) => {
         if (!timeString) return "";
@@ -47,123 +32,50 @@ const EditSchedule = () => {
         return `${nextHour.toString().padStart(2, "0")}:${minutes}`;
     };
 
-    // Assistants
-    const addAssistant = () => {
-        setData((prevData) => ({
-            ...prevData,
-            assistants: [
-                ...prevData.assistants,
-                { fotografer_id: "", jamAssist: "" },
-            ],
-        }));
-        setShowAssistants(true);
-    };
-
-    const removeAssistant = (index) => {
-        setData((prevData) => ({
-            ...prevData,
-            assistants: prevData.assistants.filter((_, i) => i !== index),
-        }));
-        if (data.assistants.length === 1) {
-            setShowAssistants(false);
-        }
-    };
-
-    const updateAssistant = (index, field, value) => {
-        setData((prevData) => ({
-            ...prevData,
-            assistants: prevData.assistants.map((assistant, i) =>
-                i === index ? { ...assistant, [field]: value } : assistant
-            ),
-        }));
+    // Fotografer
+    const addFotografer = () => setShowFotografer(true);
+    const removeFotografer = () => {
+        setData((prevData) => ({ ...prevData, fotografer_id: "" }));
+        setShowFotografer(false);
     };
 
     // Editor
     const addEditor = () => setShowEditor(true);
     const removeEditor = () => {
-        setData((prevData) => ({ ...prevData, editor_id: "", jamEditor: "" }));
+        setData((prevData) => ({ ...prevData, editor_id: "" }));
         setShowEditor(false);
     };
 
-    // Assist Editor
-    const addAssistEditor = () => {
-        setData((prev) => ({
-            ...prev,
-            assistEditors: [
-                ...prev.assistEditors,
-                { editor_id: "", jamAssist: "" },
-            ],
-        }));
-    };
+    // Google Drive Link
+    const addGdriveLink = () => setShowGdriveLink(true);
 
-    const removeAssistEditor = (index) => {
-        setData((prev) => ({
-            ...prev,
-            assistEditors: prev.assistEditors.filter((_, i) => i !== index),
-        }));
-    };
-
-    const updateAssistEditor = (index, field, value) => {
-        setData((prev) => ({
-            ...prev,
-            assistEditors: prev.assistEditors.map((item, i) =>
-                i === index ? { ...item, [field]: value } : item
-            ),
-        }));
-    };
-
-    // Jam mulai - FIXED: Only auto-set jamSelesai if it's empty
+    // Jam mulai
     const handleJamMulaiChange = (time) => {
-        setData((prevData) => {
-            // Only auto-set jamSelesai if it's currently empty
-            const shouldAutoSetEndTime = !prevData.jamSelesai;
-
-            return {
-                ...prevData,
-                jamMulai: time,
-                // Only update jamSelesai if it's empty
-                jamSelesai: shouldAutoSetEndTime ? addOneHour(time) : prevData.jamSelesai,
-            };
-        });
-    };
-
-    // Handle jamSelesai change independently
-    const handleJamSelesaiChange = (time) => {
-        setData("jamSelesai", time);
-    };
-
-    // Handle tanggal change without affecting times
-    const handleTanggalChange = (date) => {
-        setData("tanggal", date);
+        const nextHour = addOneHour(time);
+        setData((prevData) => ({
+            ...prevData,
+            jamMulai: time,
+            jamSelesai: nextHour,
+        }));
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-
-        // Langsung kirim data tanpa format tambahan karena input HTML sudah memberikan format yang benar
         put(route("schedule.update", schedule.id), {
-            preserveScroll: true,
             onSuccess: () => {
                 Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil!',
-                            text: 'Berhasil merubah data schedule',
-                            timer: 3000,
-                            showConfirmButton: false,
-                            toast: true,
-                            position: 'top-end'
-                          }).then(() => {
-                            window.location.reload();
-                          });
+                    icon: "success",
+                    title: "Berhasil!",
+                    text: "Berhasil mengupdate data schedule",
+                    timer: 3000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: "top-end",
+                }).then(() => {
+                    window.location.reload();
+                });
             },
-            onError: (errors) => {
-                console.log('Validation errors:', errors);
-            }
         });
-    };
-
-    const handleBack = () => {
-        window.history.back();
     };
 
     return (
@@ -186,7 +98,7 @@ const EditSchedule = () => {
                     {/* Header */}
                     <div className="mb-8">
                         <button
-                            onClick={handleBack}
+                            onClick={() => window.history.back()}
                             className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 mb-4 transition-colors"
                         >
                             <ArrowLeft size={20} className="mr-2" />
@@ -197,7 +109,7 @@ const EditSchedule = () => {
                         </h1>
                     </div>
 
-                    {/* Form Container */}
+                    {/* Form */}
                     <div className="max-w-2xl">
                         <form
                             onSubmit={handleSubmit}
@@ -207,16 +119,17 @@ const EditSchedule = () => {
                                 Information
                             </h2>
 
-                            {/* Tanggal - Gunakan input HTML biasa untuk edit */}
+                            {/* Tanggal */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Tanggal
                                 </label>
-                                <input
-                                    type="date"
+                                <CustomDateInput
                                     value={data.tanggal}
-                                    onChange={(e) => handleTanggalChange(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                    onChange={(date) =>
+                                        setData("tanggal", date)
+                                    }
+                                    placeholder="Pilih tanggal event"
                                     required
                                     disabled={processing}
                                 />
@@ -227,17 +140,16 @@ const EditSchedule = () => {
                                 )}
                             </div>
 
-                            {/* Jam - FIXED: Gunakan input HTML biasa untuk edit */}
+                            {/* Jam */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Jam Mulai
                                     </label>
-                                    <input
-                                        type="time"
+                                    <CustomTimeInput
                                         value={data.jamMulai}
-                                        onChange={(e) => handleJamMulaiChange(e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                        onChange={handleJamMulaiChange}
+                                        placeholder="Pilih jam mulai"
                                         required
                                         disabled={processing}
                                     />
@@ -251,11 +163,12 @@ const EditSchedule = () => {
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Jam Selesai
                                     </label>
-                                    <input
-                                        type="time"
+                                    <CustomTimeInput
                                         value={data.jamSelesai}
-                                        onChange={(e) => handleJamSelesaiChange(e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                        onChange={(time) =>
+                                            setData("jamSelesai", time)
+                                        }
+                                        placeholder="Pilih jam selesai"
                                         required
                                         disabled={processing}
                                     />
@@ -275,7 +188,9 @@ const EditSchedule = () => {
                                 <input
                                     type="text"
                                     value={data.namaEvent}
-                                    onChange={(e) => setData("namaEvent", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("namaEvent", e.target.value)
+                                    }
                                     placeholder="Masukkan Nama Event"
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                     required
@@ -287,45 +202,47 @@ const EditSchedule = () => {
                                 )}
                             </div>
 
-                            {/* Fotografer */}
+                            {/* Lapangan */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Fotografer
+                                    Lapangan
                                 </label>
                                 <select
-                                    value={data.fotografer_id}
-                                    onChange={(e) => setData("fotografer_id", e.target.value)}
+                                    value={data.lapangan_id}
+                                    onChange={(e) =>
+                                        setData("lapangan_id", e.target.value)
+                                    }
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                     required
                                 >
-                                    <option value="">Pilih Fotografer</option>
-                                    {fotografers.map((f) => (
-                                        <option key={f.id} value={f.id}>
-                                            {f.nama}
+                                    <option value="">Pilih Lapangan</option>
+                                    {lapangans.map((lapangan) => (
+                                        <option key={lapangan.id} value={lapangan.id}>
+                                            {lapangan.nama_lapangan}
                                         </option>
                                     ))}
                                 </select>
-                                {errors.fotografer_id && (
+                                {errors.lapangan_id && (
                                     <div className="text-red-500 dark:text-red-400 text-sm mt-1">
-                                        {errors.fotografer_id}
+                                        {errors.lapangan_id}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Tombol tambah assist & editor */}
+                            {/* Tombol tambah fotografer & editor */}
                             <div className="flex gap-4">
-                                {/* Assist Fotografer */}
-                                <button
-                                    type="button"
-                                    onClick={addAssistant}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
-                                >
-                                    <Plus size={16} />
-                                    Tambah Assist Fotografer
-                                </button>
+                                {!showFotografer && (
+                                    <button
+                                        type="button"
+                                        onClick={addFotografer}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
+                                    >
+                                        <Plus size={16} />
+                                        Tambah Fotografer
+                                    </button>
+                                )}
 
-                                {/* Editor / Assist Editor */}
-                                {!showEditor ? (
+                                {!showEditor && (
                                     <button
                                         type="button"
                                         onClick={addEditor}
@@ -334,17 +251,50 @@ const EditSchedule = () => {
                                         <Plus size={16} />
                                         Tambah Editor
                                     </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={addAssistEditor}
-                                        className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
-                                    >
-                                        <Plus size={16} />
-                                        Tambah Assist Editor
-                                    </button>
                                 )}
                             </div>
+
+                            {/* Fotografer Form */}
+                            {showFotografer && (
+                                <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Fotografer
+                                        </h4>
+                                        <button
+                                            type="button"
+                                            onClick={removeFotografer}
+                                            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            Pilih Fotografer
+                                        </label>
+                                        <select
+                                            value={data.fotografer_id}
+                                            onChange={(e) =>
+                                                setData("fotografer_id", e.target.value)
+                                            }
+                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                        >
+                                            <option value="">Pilih Fotografer</option>
+                                            {fotografers.map((f) => (
+                                                <option key={f.id} value={f.id}>
+                                                    {f.nama}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.fotografer_id && (
+                                            <div className="text-red-500 dark:text-red-400 text-sm mt-1">
+                                                {errors.fotografer_id}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Editor Form */}
                             {showEditor && (
@@ -361,208 +311,32 @@ const EditSchedule = () => {
                                             <X size={18} />
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Pilih Editor
-                                            </label>
-                                            <select
-                                                value={data.editor_id}
-                                                onChange={(e) => setData("editor_id", e.target.value)}
-                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                            >
-                                                <option value="">Pilih Editor</option>
-                                                {editors.map((e) => (
-                                                    <option key={e.id} value={e.id}>
-                                                        {e.nama}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors.editor_id && (
-                                                <div className="text-red-500 dark:text-red-400 text-sm mt-1">
-                                                    {errors.editor_id}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Match Editor
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                value={data.jamEditor}
-                                                onChange={(e) => setData("jamEditor", e.target.value)}
-                                                placeholder="1"
-                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                            />
-                                            {errors.jamEditor && (
-                                                <div className="text-red-500 dark:text-red-400 text-sm mt-1">
-                                                    {errors.jamEditor}
-                                                </div>
-                                            )}
-                                        </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            Pilih Editor
+                                        </label>
+                                        <select
+                                            value={data.editor_id}
+                                            onChange={(e) =>
+                                                setData("editor_id", e.target.value)
+                                            }
+                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                        >
+                                            <option value="">Pilih Editor</option>
+                                            {editors.map((e) => (
+                                                <option key={e.id} value={e.id}>
+                                                    {e.nama}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.editor_id && (
+                                            <div className="text-red-500 dark:text-red-400 text-sm mt-1">
+                                                {errors.editor_id}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
-
-                            {/* Editor Assist Forms */}
-                            {data.assistEditors.map((assist, index) => (
-                                <div
-                                    key={index}
-                                    className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300"
-                                >
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Assist Editor {index + 1}
-                                        </h4>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                removeAssistEditor(index)
-                                            }
-                                            className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                                        >
-                                            <X size={18} />
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Pilih Assist Editor
-                                            </label>
-                                            <select
-                                                value={assist.editor_id}
-                                                onChange={(e) =>
-                                                    updateAssistEditor(
-                                                        index,
-                                                        "editor_id",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                            >
-                                                <option value="">
-                                                    Pilih Assist Editor
-                                                </option>
-                                                {editors.map((ed) => (
-                                                    <option
-                                                        key={ed.id}
-                                                        value={ed.id}
-                                                    >
-                                                        {ed.nama}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                Match Assist
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                value={assist.jamAssist}
-                                                onChange={(e) =>
-                                                    updateAssistEditor(
-                                                        index,
-                                                        "jamAssist",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                placeholder="1"
-                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-
-                            {/* Assistant Fotografer Forms */}
-                            {showAssistants &&
-                                data.assistants.map((assistant, index) => (
-                                    <div
-                                        key={index}
-                                        className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 transition-colors duration-300"
-                                    >
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                Assist Fotografer {index + 1}
-                                            </h4>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeAssistant(index)}
-                                                className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                                            >
-                                                <X size={18} />
-                                            </button>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                    Pilih Assistant
-                                                </label>
-                                                <select
-                                                    value={assistant.fotografer_id || ""}
-                                                    onChange={(e) =>
-                                                        updateAssistant(
-                                                            index,
-                                                            "fotografer_id",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                                >
-                                                    <option value="">Pilih Assistant</option>
-                                                    {fotografers.map((f) => (
-                                                        <option key={f.id} value={f.id}>
-                                                            {f.nama}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                    Sesi Assist
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    value={assistant.jamAssist || ""}
-                                                    onChange={(e) =>
-                                                        updateAssistant(
-                                                            index,
-                                                            "jamAssist",
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    placeholder="1"
-                                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-
-                            {/* Lapangan */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Lapangan
-                                </label>
-                                <input
-                                    type="text"
-                                    value={data.lapangan}
-                                    onChange={(e) => setData("lapangan", e.target.value)}
-                                    placeholder="Masukkan Nama Lapangan"
-                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
-                                    required
-                                />
-                                {errors.lapangan && (
-                                    <div className="text-red-500 dark:text-red-400 text-sm mt-1">
-                                        {errors.lapangan}
-                                    </div>
-                                )}
-                            </div>
 
                             {/* Catatan */}
                             <div>
@@ -571,7 +345,9 @@ const EditSchedule = () => {
                                 </label>
                                 <textarea
                                     value={data.catatan}
-                                    onChange={(e) => setData("catatan", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("catatan", e.target.value)
+                                    }
                                     placeholder="Tambahkan catatan jika ada..."
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
                                     rows="3"
@@ -583,14 +359,51 @@ const EditSchedule = () => {
                                 )}
                             </div>
 
-                            {/* Submit Button */}
-                            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-600">
+                            {/* Tombol tambah Google Drive Link */}
+                            {!showGdriveLink && (
+                                <div className="flex justify-start">
+                                    <button
+                                        type="button"
+                                        onClick={addGdriveLink}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-300"
+                                    >
+                                        <Plus size={16} />
+                                        Tambah Link Google Drive
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Google Drive Link Form */}
+                            {showGdriveLink && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Link Google Drive
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={data.linkGdrive}
+                                        onChange={(e) =>
+                                            setData("linkGdrive", e.target.value)
+                                        }
+                                        placeholder="https://drive.google.com/..."
+                                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-300"
+                                    />
+                                    {errors.linkGdrive && (
+                                        <div className="text-red-500 dark:text-red-400 text-sm mt-1">
+                                            {errors.linkGdrive}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Submit */}
+                            <div className="flex justify-end pt-4">
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="px-8 py-3 bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                                    className="px-8 py-3 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {processing ? "Updating..." : "Update Schedule"}
+                                    {processing ? "Updating..." : "Update"}
                                 </button>
                             </div>
                         </form>

@@ -222,18 +222,6 @@ class DatabaseSeeder extends Seeder
                 'catatan' => $data['catatan'],
             ]);
 
-            // Add some assistants randomly (30% chance)
-            if (rand(1, 10) <= 3) {
-                $assistantCount = rand(1, 2);
-                for ($i = 0; $i < $assistantCount; $i++) {
-                    $assistant = $fotografers->where('id', '!=', $fotografer->id)->random();
-                    ScheduleFotograferAssist::create([
-                        'schedule_id' => $schedule->id,
-                        'fotografer_id' => $assistant->id,
-                        'jamAssist' => rand(2, 4) + 0.5 * rand(0, 1), // Random 2-4.5 hours
-                    ]);
-                }
-            }
         }
 
         $this->command->info('Database seeded successfully!');
