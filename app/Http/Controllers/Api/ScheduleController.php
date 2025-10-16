@@ -141,4 +141,42 @@ class ScheduleController extends Controller
     ]);
 }
 
+public function totalJamFotografer()
+{
+    $user = auth()->user();
+
+    // Pastikan hanya fotografer yang bisa mengakses
+    if ($user->role !== 'fotografer') {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Hanya fotografer yang dapat mengakses data ini'
+        ], 403);
+    }
+
+    // Ambil data fotografer berdasarkan user_id
+    $fotografer = \App\Models\Fotografer::where('user_id', $user->id)->first();
+
+    if (!$fotografer) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Fotografer tidak ditemukan'
+        ], 404);
+    }
+
+    // Ambil semua schedule milik fotografer tersebut
+    $totalJam = \App\Models\Schedule::where('fotografer_id', $fotografer->id)
+        ->sum('jamFotografer');
+
+    return response()->json([
+        'status' => 'success',
+        'fotografer' => $fotografer->nama,
+        'total_jam_fotografer' => (float) $totalJam,
+        'keterangan' => 'Total jam kerja fotografer dari semua schedule'
+    ]);
+}
+
+
+
+
+
 }

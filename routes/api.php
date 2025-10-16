@@ -20,7 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('profil', [ProfileController::class,'index']);
     Route::post('profil/{id}', [ProfileController::class, 'update']);
     Route::apiResource('assist', ScheduleAssistController::class);
-
+    Route::get('/total-jam-fotografer', [ScheduleController::class, 'totalJamFotografer']);
 
 });
 // Route::get('/user', function (Request $request) {
