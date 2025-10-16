@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ScheduleAssistController;
+
 Route::get('/', function(){
     return'API';
 });
@@ -17,6 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::apiResource('profil', ProfileController::class);
     Route::get('profil', [ProfileController::class,'index']);
     Route::post('profil/{id}', [ProfileController::class, 'update']);
+    Route::apiResource('assist', ScheduleAssistController::class);
 
 
 });
